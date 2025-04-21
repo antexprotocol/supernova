@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/meterio/supernova/block"
-	cmn "github.com/meterio/supernova/libs/common"
-	"github.com/meterio/supernova/types"
+	"github.com/antexprotocol/supernova/block"
+	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/prysmaticlabs/prysm/v5/crypto/bls"
 )
 

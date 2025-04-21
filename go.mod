@@ -1,4 +1,4 @@
-module github.com/meterio/supernova
+module github.com/antexprotocol/supernova
 
 go 1.23.1
 

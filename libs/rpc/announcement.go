@@ -1,8 +1,8 @@
 package rpc
 
 import (
+	"github.com/antexprotocol/supernova/types"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/meterio/supernova/types"
 )
 
 type announcement struct {

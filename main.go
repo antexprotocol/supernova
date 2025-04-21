@@ -15,13 +15,13 @@ import (
 	"github.com/cometbft/cometbft/proxy"
 	"golang.org/x/sync/errgroup"
 
+	node "github.com/antexprotocol/supernova/node"
 	cfg "github.com/cometbft/cometbft/config"
 	cmtflags "github.com/cometbft/cometbft/libs/cli/flags"
 	cmtlog "github.com/cometbft/cometbft/libs/log"
 	cmtnode "github.com/cometbft/cometbft/node"
-	node "github.com/meterio/supernova/node"
 
-	"github.com/meterio/supernova/types"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/spf13/viper"
 )
 

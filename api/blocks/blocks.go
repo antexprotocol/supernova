@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/antexprotocol/supernova/api/utils"
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/chain"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/gorilla/mux"
-	"github.com/meterio/supernova/api/utils"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/chain"
-	"github.com/meterio/supernova/types"
 	"github.com/pkg/errors"
 )
 

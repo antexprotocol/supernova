@@ -3,8 +3,8 @@ package chain
 import (
 	"log/slog"
 
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/types"
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/types"
 )
 
 type ProposalMap struct {

@@ -8,9 +8,9 @@ package node
 import (
 	"errors"
 
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/consensus"
-	"github.com/meterio/supernova/types"
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/consensus"
+	"github.com/antexprotocol/supernova/types"
 )
 
 // Block block

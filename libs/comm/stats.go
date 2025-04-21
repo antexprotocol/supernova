@@ -5,7 +5,7 @@
 
 package comm
 
-import "github.com/meterio/supernova/types"
+import "github.com/antexprotocol/supernova/types"
 
 // type Traffic struct {
 // 	Bytes    uint64

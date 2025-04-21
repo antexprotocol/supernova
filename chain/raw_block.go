@@ -8,7 +8,7 @@ package chain
 import (
 	"sync/atomic"
 
-	"github.com/meterio/supernova/block"
+	"github.com/antexprotocol/supernova/block"
 )
 
 type rawBlock struct {

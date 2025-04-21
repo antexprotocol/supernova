@@ -6,8 +6,8 @@
 package block
 
 import (
+	"github.com/antexprotocol/supernova/types"
 	cmttypes "github.com/cometbft/cometbft/types"
-	"github.com/meterio/supernova/types"
 )
 
 // Builder only build header and txs. committee info and kblock data built by app.

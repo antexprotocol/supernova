@@ -12,11 +12,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/chain"
+	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/types"
 	cmttypes "github.com/cometbft/cometbft/types"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/chain"
-	cmn "github.com/meterio/supernova/libs/common"
-	"github.com/meterio/supernova/types"
 	"github.com/prysmaticlabs/prysm/v5/crypto/bls"
 )
 

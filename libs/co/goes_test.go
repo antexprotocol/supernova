@@ -8,7 +8,7 @@ package co_test
 import (
 	"testing"
 
-	"github.com/meterio/supernova/libs/co"
+	"github.com/antexprotocol/supernova/libs/co"
 )
 
 func TestGoes(t *testing.T) {

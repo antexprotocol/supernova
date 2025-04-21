@@ -30,3 +30,6 @@ package.json
 release/
 
 types/gen/compiled/
+
+main
+supernova

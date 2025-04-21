@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/ethereum/go-ethereum/common"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/types"
 )
 
 const (

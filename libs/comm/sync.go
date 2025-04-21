@@ -10,11 +10,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/libs/co"
+	"github.com/antexprotocol/supernova/libs/comm/proto"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/libs/co"
-	"github.com/meterio/supernova/libs/comm/proto"
-	"github.com/meterio/supernova/types"
 	"github.com/pkg/errors"
 )
 

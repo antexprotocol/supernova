@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/antexprotocol/supernova/libs/comm/proto"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/meterio/supernova/libs/comm/proto"
-	"github.com/meterio/supernova/types"
 	"github.com/pkg/errors"
 )
 

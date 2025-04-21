@@ -8,8 +8,8 @@ package comm
 import (
 	"fmt"
 
-	"github.com/meterio/supernova/libs/comm/proto"
-	"github.com/meterio/supernova/txpool"
+	"github.com/antexprotocol/supernova/libs/comm/proto"
+	"github.com/antexprotocol/supernova/txpool"
 )
 
 func (c *Communicator) txsLoop() {

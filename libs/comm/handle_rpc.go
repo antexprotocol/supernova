@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/libs/comm/proto"
-	"github.com/meterio/supernova/types"
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/libs/comm/proto"
+	"github.com/antexprotocol/supernova/types"
 
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/ethereum/go-ethereum/common"

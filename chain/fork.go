@@ -6,7 +6,7 @@
 package chain
 
 import (
-	"github.com/meterio/supernova/block"
+	"github.com/antexprotocol/supernova/block"
 )
 
 // Fork describes forked chain.

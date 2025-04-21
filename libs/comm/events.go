@@ -8,7 +8,7 @@ package comm
 import (
 	"context"
 
-	"github.com/meterio/supernova/block"
+	"github.com/antexprotocol/supernova/block"
 )
 
 // NewBlockEvent event emitted when received block announcement.

@@ -14,15 +14,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/chain"
+	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/libs/p2p"
+	"github.com/antexprotocol/supernova/txpool"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/cometbft/cometbft/privval"
 	cmtproxy "github.com/cometbft/cometbft/proxy"
 	cmttypes "github.com/cometbft/cometbft/types"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/chain"
-	cmn "github.com/meterio/supernova/libs/common"
-	"github.com/meterio/supernova/libs/p2p"
-	"github.com/meterio/supernova/txpool"
-	"github.com/meterio/supernova/types"
 )
 
 const (

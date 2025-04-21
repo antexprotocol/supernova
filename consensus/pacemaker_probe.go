@@ -4,9 +4,9 @@ package consensus
 // 1. provide probe for debug
 
 import (
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/types"
 )
 
 type BlockProbe struct {

@@ -9,15 +9,15 @@ import (
 	"log/slog"
 	"os"
 
+	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/node"
+	"github.com/antexprotocol/supernova/types"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtflags "github.com/cometbft/cometbft/libs/cli/flags"
 	cmtlog "github.com/cometbft/cometbft/libs/log"
 	cmtnode "github.com/cometbft/cometbft/node"
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
-	cmn "github.com/meterio/supernova/libs/common"
-	"github.com/meterio/supernova/node"
-	"github.com/meterio/supernova/types"
 	"github.com/spf13/cobra"
 )
 

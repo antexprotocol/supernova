@@ -12,12 +12,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/antexprotocol/supernova/chain"
+	"github.com/antexprotocol/supernova/libs/lvldb"
 	db "github.com/cometbft/cometbft-db"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"github.com/lmittmann/tint"
-	"github.com/meterio/supernova/chain"
-	"github.com/meterio/supernova/libs/lvldb"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

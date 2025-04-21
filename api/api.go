@@ -12,17 +12,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/antexprotocol/supernova/api/blocks"
+	"github.com/antexprotocol/supernova/api/doc"
+	"github.com/antexprotocol/supernova/api/node"
+	"github.com/antexprotocol/supernova/chain"
+	"github.com/antexprotocol/supernova/consensus"
+	"github.com/antexprotocol/supernova/libs/co"
+	"github.com/antexprotocol/supernova/libs/p2p"
+	"github.com/antexprotocol/supernova/txpool"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/meterio/supernova/api/blocks"
-	"github.com/meterio/supernova/api/doc"
-	"github.com/meterio/supernova/api/node"
-	"github.com/meterio/supernova/chain"
-	"github.com/meterio/supernova/consensus"
-	"github.com/meterio/supernova/libs/co"
-	"github.com/meterio/supernova/libs/p2p"
-	"github.com/meterio/supernova/txpool"
 )
 
 type APIServer struct {

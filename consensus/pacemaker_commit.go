@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/chain"
+	"github.com/antexprotocol/supernova/libs/message"
+	"github.com/antexprotocol/supernova/libs/p2p"
+	"github.com/antexprotocol/supernova/libs/rpc"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/chain"
-	"github.com/meterio/supernova/libs/message"
-	"github.com/meterio/supernova/libs/p2p"
-	"github.com/meterio/supernova/libs/rpc"
-	"github.com/meterio/supernova/types"
 )
 
 // finalize the block with its own QC

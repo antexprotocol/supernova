@@ -4,13 +4,13 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/antexprotocol/supernova/chain"
+	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/types"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/crypto/bls12381"
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/meterio/supernova/chain"
-	cmn "github.com/meterio/supernova/libs/common"
-	"github.com/meterio/supernova/types"
 )
 
 type ValidatorSetRegistry struct {

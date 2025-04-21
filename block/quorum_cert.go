@@ -11,9 +11,9 @@ import (
 	"io"
 	"log/slog"
 
+	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	cmn "github.com/meterio/supernova/libs/common"
-	"github.com/meterio/supernova/types"
 )
 
 type QuorumCert struct {

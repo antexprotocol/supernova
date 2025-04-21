@@ -16,11 +16,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/types"
 	cmtbytes "github.com/cometbft/cometbft/libs/bytes"
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	cmn "github.com/meterio/supernova/libs/common"
-	"github.com/meterio/supernova/types"
 	"github.com/prysmaticlabs/prysm/v5/crypto/bls"
 )
 

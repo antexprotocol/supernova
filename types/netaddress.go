@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	cmn "github.com/meterio/supernova/libs/common"
+	cmn "github.com/antexprotocol/supernova/libs/common"
 )
 
 // NetAddress defines information about a peer on the network

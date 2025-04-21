@@ -12,8 +12,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/meterio/supernova/api/blocks"
-	meter_block "github.com/meterio/supernova/block"
+	"github.com/antexprotocol/supernova/api/blocks"
+	meter_block "github.com/antexprotocol/supernova/block"
 	"github.com/stretchr/testify/assert"
 )
 

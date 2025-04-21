@@ -13,16 +13,16 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/meterio/supernova/libs/p2p"
+	"github.com/antexprotocol/supernova/libs/p2p"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/chain"
+	"github.com/antexprotocol/supernova/txpool"
+	"github.com/antexprotocol/supernova/types"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtproxy "github.com/cometbft/cometbft/proxy"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/chain"
-	"github.com/meterio/supernova/txpool"
-	"github.com/meterio/supernova/types"
 )
 
 var (

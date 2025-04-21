@@ -9,14 +9,14 @@ import (
 	"context"
 	"io"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/libs/message"
+	"github.com/antexprotocol/supernova/libs/p2p"
+	"github.com/antexprotocol/supernova/types"
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/libs/message"
-	"github.com/meterio/supernova/libs/p2p"
-	"github.com/meterio/supernova/types"
 )
 
 type (

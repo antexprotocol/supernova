@@ -6,11 +6,11 @@
 package comm
 
 import (
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/libs/comm/proto"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/libs/comm/proto"
-	"github.com/meterio/supernova/types"
 )
 
 type announcement struct {

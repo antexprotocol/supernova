@@ -6,11 +6,11 @@
 package genesis
 
 import (
+	"github.com/antexprotocol/supernova/block"
+	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/types"
 	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
 	cmttypes "github.com/cometbft/cometbft/types"
-	"github.com/meterio/supernova/block"
-	cmn "github.com/meterio/supernova/libs/common"
-	"github.com/meterio/supernova/types"
 	"github.com/pkg/errors"
 )
 

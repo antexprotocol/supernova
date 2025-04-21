@@ -8,12 +8,12 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/chain"
+	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/types"
 	cmtcrypto "github.com/cometbft/cometbft/crypto"
 	cmttypes "github.com/cometbft/cometbft/types"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/chain"
-	cmn "github.com/meterio/supernova/libs/common"
-	"github.com/meterio/supernova/types"
 
 	"github.com/prysmaticlabs/prysm/v5/crypto/bls"
 )

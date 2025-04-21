@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/types"
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/types"
 )
 
 func (p *Pacemaker) scheduleBroadcast(proposalMsg *block.PMProposalMessage, d time.Duration) {

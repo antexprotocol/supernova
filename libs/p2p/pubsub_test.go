@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/meterio/supernova/libs/p2p/encoder"
-	testp2p "github.com/meterio/supernova/libs/p2p/testing"
+	"github.com/antexprotocol/supernova/libs/p2p/encoder"
+	testp2p "github.com/antexprotocol/supernova/libs/p2p/testing"
 	"github.com/pkg/errors"
 	mock "github.com/prysmaticlabs/prysm/v5/beacon-chain/blockchain/testing"
 	"github.com/prysmaticlabs/prysm/v5/beacon-chain/startup"

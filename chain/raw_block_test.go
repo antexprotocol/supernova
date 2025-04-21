@@ -3,10 +3,10 @@ package chain
 import (
 	"testing"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/types"
 	"github.com/stretchr/testify/assert"
 )
 

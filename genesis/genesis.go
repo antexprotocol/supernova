@@ -9,10 +9,10 @@ import (
 	"encoding/hex"
 	"strconv"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/types"
 	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
 	cmttypes "github.com/cometbft/cometbft/types"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/types"
 )
 
 const (

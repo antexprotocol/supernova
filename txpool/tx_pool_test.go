@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/antexprotocol/supernova/block"
+	"github.com/antexprotocol/supernova/genesis"
+	"github.com/antexprotocol/supernova/libs/lvldb"
+	"github.com/antexprotocol/supernova/types"
 	cmttypes "github.com/cometbft/cometbft/types"
-	"github.com/meterio/supernova/block"
-	"github.com/meterio/supernova/genesis"
-	"github.com/meterio/supernova/libs/lvldb"
-	"github.com/meterio/supernova/types"
 	"github.com/stretchr/testify/assert"
 )
 

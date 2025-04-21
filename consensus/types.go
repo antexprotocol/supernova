@@ -6,7 +6,7 @@
 package consensus
 
 import (
-	"github.com/meterio/supernova/block"
+	"github.com/antexprotocol/supernova/block"
 )
 
 type EpochEndInfo struct {

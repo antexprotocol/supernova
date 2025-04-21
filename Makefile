@@ -1,4 +1,4 @@
-PACKAGE = github.com/meterio/supernova
+PACKAGE = github.com/antexprotocol/supernova
 
 GIT_COMMIT = $(shell git --no-pager log --pretty="%h" -n 1)
 GIT_TAG = $(shell git tag -l --points-at HEAD)
@@ -52,3 +52,6 @@ $(CURDIR)/bin/disco
 
 test:| go_version_check
 	@go test -cover $(PACKAGES)
+
+local:
+	go build -o supernova -tags bls12381 main.go sample_app.go 
