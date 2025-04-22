@@ -12,12 +12,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/OffchainLabs/prysm/v6/crypto/bls"
 	"github.com/antexprotocol/supernova/block"
 	"github.com/antexprotocol/supernova/chain"
 	cmn "github.com/antexprotocol/supernova/libs/common"
 	"github.com/antexprotocol/supernova/types"
 	cmttypes "github.com/cometbft/cometbft/types"
-	"github.com/prysmaticlabs/prysm/v5/crypto/bls"
 )
 
 // This is part of pacemaker that in charge of:

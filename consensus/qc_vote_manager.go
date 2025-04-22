@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/OffchainLabs/prysm/v6/crypto/bls"
 	"github.com/antexprotocol/supernova/block"
 	cmn "github.com/antexprotocol/supernova/libs/common"
 	"github.com/antexprotocol/supernova/types"
-	"github.com/prysmaticlabs/prysm/v5/crypto/bls"
 )
 
 type vote struct {

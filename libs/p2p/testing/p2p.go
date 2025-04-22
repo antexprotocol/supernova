@@ -10,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	ethpb "github.com/OffchainLabs/prysm/v6/proto/prysm/v1alpha1"
+	"github.com/OffchainLabs/prysm/v6/proto/prysm/v1alpha1/metadata"
+	"github.com/OffchainLabs/prysm/v6/testing/require"
 	"github.com/antexprotocol/supernova/libs/p2p/encoder"
 	"github.com/antexprotocol/supernova/libs/p2p/peers"
 	"github.com/antexprotocol/supernova/libs/p2p/peers/scorers"
@@ -27,9 +30,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
 	ssz "github.com/prysmaticlabs/fastssz"
-	ethpb "github.com/prysmaticlabs/prysm/v5/proto/prysm/v1alpha1"
-	"github.com/prysmaticlabs/prysm/v5/proto/prysm/v1alpha1/metadata"
-	"github.com/prysmaticlabs/prysm/v5/testing/require"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )

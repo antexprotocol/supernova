@@ -11,12 +11,12 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/OffchainLabs/prysm/v6/crypto/bls"
 	cmn "github.com/antexprotocol/supernova/libs/common"
 	"github.com/antexprotocol/supernova/types"
 	cmtcrypto "github.com/cometbft/cometbft/crypto"
 	"github.com/ethereum/go-ethereum/crypto/blake2b"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/prysmaticlabs/prysm/v5/crypto/bls"
 	amino "github.com/tendermint/go-amino"
 )
 
