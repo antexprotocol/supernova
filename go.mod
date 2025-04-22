@@ -14,6 +14,7 @@ require (
 	github.com/cosmos/cosmos-db v1.0.2
 	github.com/elazarl/go-bindata-assetfs v1.0.0
 	github.com/ethereum/go-ethereum v1.13.5
+	github.com/ferranbt/fastssz v0.1.4
 	github.com/fortytw2/leaktest v1.3.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
@@ -39,10 +40,11 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
-	github.com/supranational/blst v0.3.13
+	github.com/supranational/blst v0.3.14
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tendermint/go-amino v0.16.0
 	golang.org/x/crypto v0.30.0
+	golang.org/x/sync v0.10.0
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/urfave/cli.v1 v1.20.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -87,7 +89,6 @@ require (
 	github.com/elastic/gosigar v0.14.3 // indirect
 	github.com/emicklei/dot v1.6.2 // indirect
 	github.com/ethereum/c-kzg-4844 v0.4.0 // indirect
-	github.com/ferranbt/fastssz v0.1.4 // indirect
 	github.com/flynn/noise v1.1.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -240,7 +241,6 @@ require (
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
