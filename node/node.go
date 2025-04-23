@@ -168,7 +168,7 @@ func NewNode(
 		ipPort := strings.Split(ipPorts[1], ":")
 		slog.Info("ipPort:", "ipPort", ipPort)
 
-		formattedNodeAddr := fmt.Sprintf("/ip4/%s/tdp/%s", ipPort[0], ipPort[1])
+		formattedNodeAddr := fmt.Sprintf("/ip4/%s/tcp/%s", ipPort[0], ipPort[1])
 		slog.Info("formattedNodeAddr:", "formattedNodeAddr", formattedNodeAddr)
 
 		bootstrapNodes = append(bootstrapNodes, formattedNodeAddr)
