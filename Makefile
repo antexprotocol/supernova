@@ -53,5 +53,5 @@ $(CURDIR)/bin/disco
 test:| go_version_check
 	@go test -cover $(PACKAGES)
 
-local:
+build:
 	go build -o supernova -tags bls12381 main.go sample_app.go 

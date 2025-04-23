@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/antexprotocol/supernova/libs/p2p"
@@ -155,11 +156,16 @@ func NewNode(
 	defer func() { slog.Info("closing tx pool..."); txPool.Close() }()
 
 	var bootstrapNodes []string
-	// splitdAddrs := strings.Split(config.P2P.PersistentPeers, ",")
-	// for _, splitdAddr := range splitdAddrs {
-	// 	addrs := strings.Split(splitdAddr, "@")
-	// 	bootstrapNodes = append(bootstrapNodes, addrs[1])
-	// }
+
+	// example format: /ip4/127.0.0.1/udp/1234
+	splitdAddrs := strings.Split(config.P2P.PersistentPeers, ",")
+	for _, splitdAddr := range splitdAddrs {
+		ipPorts := strings.Split(splitdAddr, "@")
+		ipPort := strings.Split(ipPorts[1], ":")
+
+		formattedNodeAddr := fmt.Sprintf("/ip4/%s/tdp/%s", ipPort[0], ipPort[1])
+		bootstrapNodes = append(bootstrapNodes, formattedNodeAddr)
+	}
 	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QGZ6np5N03sJeQPI1ep3L_13ckTJQ5TXcj81mk_UV3oeA-mMtcw7JViYP3cgSBmvxQV74MRTTfUNM5TUqr_D2BiGAZRynhEfh2F0dG5ldHOIAAAAAAAAAACEZXRoMpBLDKxQAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfWYOJc2VjcDI1NmsxoQMkZ9waUAVNMFXOY3B5VlDTqLZHqb4MqKOFXSvh-k4dUohzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-3
 	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QOQzYBuKsestT0uZsQ2L7dDgD6EfE81oLfFflzurOHq7B4pY5r-8kozd9PRpE0Z3I994DxXmRc7mC8v23ABysCmGAZRsaVWnh2F0dG5ldHOIAAAAAAAAAACEZXRoMpBLDKxQAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfEoiJc2VjcDI1NmsxoQLZ9EQkKk4n9OCfErexZJ6m-auSEcBdVngrAgh1UlWMp4hzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-2
 	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QLXP9wqWWwRhi4To_3TJ_8rEMYOwN1fZIPeHg7uH__O-K2jBnFYwRy7oFoLYfUYFyP7XlXn5Ibq3Ltqfuzl-VrqGAZRsacAUh2F0dG5ldHOIAAAAAAAAAACEZXRoMpBLDKxQAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfHXiJc2VjcDI1NmsxoQO4P_0L80DH2OIc3pd9GfjqevVK0tV2Z9NZqZ6_qAxSMYhzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-1
@@ -255,15 +261,15 @@ func newP2PService(ctx context.Context, config *cmtcfg.Config, bootstrapNodes []
 		// RelayNodeAddr:        cliCtx.String(cmd.RelayNode.Name),
 		DataDir: config.RootDir,
 		// LocalIP:              cliCtx.String(cmd.P2PIP.Name),
-		HostAddress: config.P2P.ListenAddress,
+		HostAddress: "0.0.0.0",
 
 		// HostDNS:      cliCtx.String(cmd.P2PHostDNS.Name),
 		PrivateKey:   "",
 		StaticPeerID: true,
 		// MetaDataDir:          cliCtx.String(cmd.P2PMetadata.Name),
-		QUICPort:  13000,
-		TCPPort:   13000,
-		UDPPort:   12000,
+		QUICPort:  26656,
+		TCPPort:   26656,
+		UDPPort:   26656,
 		MaxPeers:  uint(config.P2P.MaxNumInboundPeers),
 		QueueSize: 1000,
 		// AllowListCIDR:        cliCtx.String(cmd.P2PAllowList.Name),
