@@ -647,7 +647,11 @@ func PeersFromStringAddrs(addrs []string) ([]ma.Multiaddr, error) {
 func ParseBootStrapAddrs(addrs []string) (discv5Nodes []string) {
 	log.Info("Parsing bootstrap addresses", "addrs", addrs)
 
-	discv5Nodes, _ = parseGenericAddrs(addrs)
+	var multiAddrs []string
+	discv5Nodes, multiAddrs = parseGenericAddrs(addrs)
+	log.Info("Discv5 nodes", "nodes", discv5Nodes)
+	log.Info("Multiaddrs", "multiaddrs", multiAddrs)
+
 	if len(discv5Nodes) == 0 {
 		log.Warn("No bootstrap addresses supplied")
 	}
@@ -664,11 +668,15 @@ func parseGenericAddrs(addrs []string) (enodeString, multiAddrString []string) {
 		if err == nil {
 			enodeString = append(enodeString, addr)
 			continue
+		} else {
+			log.WithError(err).Errorf("Invalid enode address of %s provided", addr)
 		}
 		_, err = multiAddrFromString(addr)
 		if err == nil {
 			multiAddrString = append(multiAddrString, addr)
 			continue
+		} else {
+			log.WithError(err).Errorf("Invalid multiaddr address of %s provided", addr)
 		}
 		log.WithError(err).Errorf("Invalid address of %s provided", addr)
 	}
