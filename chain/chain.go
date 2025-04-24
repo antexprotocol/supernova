@@ -177,7 +177,7 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 	} else {
 		// chain is initialized in db
 		// load them into chain object
-		fmt.Println("chain is initialized in db")
+		c.logger.Info("chain is initialized in db")
 
 		existGenesisID, err := loadBlockHash(c.kv, 0)
 		if err != nil {
@@ -192,6 +192,8 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 		if err != nil {
 			return err
 		}
+		c.logger.Info("check vset and nextVset", "vsetHash", geneBlock.ValidatorsHash(), "nextVsetHash", geneBlock.NextValidatorsHash())
+
 		nxtVSet, err := loadValidatorSet(c.kv, geneBlock.NextValidatorsHash())
 		if err != nil {
 			return err
@@ -212,7 +214,27 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 			saveBestQC(c.kv, geneEscortQC)
 		}
 
+		vSet := gene.ValidatorSet()
+		if _, err := loadValidatorSet(c.kv, geneBlock.ValidatorsHash()); err != nil {
+			c.logger.Info("saving genesis validator set", "hash", hex.EncodeToString(vSet.Hash()), "size", vSet.Size())
+			err = saveValidatorSet(c.kv, vSet)
+			if err != nil {
+				return err
+			}
+		}
+		bestBlock.BlockHeader.ValidatorsHash = geneBlock.ValidatorsHash()
+
+		nextVSet := gene.NextValidatorSet()
+		if _, err := loadValidatorSet(c.kv, geneBlock.NextValidatorsHash()); err != nil {
+			c.logger.Info("saving genesis next validator set", "hash", hex.EncodeToString(nextVSet.Hash()), "size", nextVSet.Size())
+			err = saveValidatorSet(c.kv, nextVSet)
+			if err != nil {
+				return err
+			}
+		}
+		bestBlock.BlockHeader.NextValidatorsHash = geneBlock.NextValidatorsHash()
 	}
+
 	bestQC, err := loadBestQC(c.kv)
 	if err != nil {
 		return err
@@ -237,7 +259,7 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 	bestHeightGauge.Set(float64(bestBlock.Number()))
 	bestQCHeightGauge.Set(float64(bestQC.Number()))
 
-	c.logger.Info("Chain initialized", "best", bestBlock.CompactString(), "bestQC", bestQC.String())
+	c.logger.Info("Chain initialized", "best", bestBlock.CompactString(), "bestQC", bestQC.String(), "bestBlockID", bestBlock.ID())
 	return nil
 }
 
@@ -877,7 +899,9 @@ func (c *Chain) GetBestNextValidatorSet() *cmttypes.ValidatorSet {
 }
 
 func (c *Chain) GetBestValidatorSet() *cmttypes.ValidatorSet {
+	c.logger.Info("GetBestValidatorSet", "hash", c.bestBlock.ValidatorsHash())
 	vset, err := loadValidatorSet(c.kv, c.bestBlock.ValidatorsHash())
+	c.logger.Debug("get best validator set", "hash", c.bestBlock.ValidatorsHash(), "num", c.bestBlock.Number(), "err", err)
 	if err != nil {
 		c.logger.Warn("could not load vset", "hash", c.bestBlock.ValidatorsHash(), "num", c.bestBlock.Number(), "err", err)
 		return nil
