@@ -159,14 +159,19 @@ func NewNode(
 
 	// example format: /ip4/127.0.0.1/udp/1234
 	// enode  format: enode://c35c3ec90a8a51fd5703594c6303382f3ae6b2ecb9589bab2c04b3794f2bc3fc2631dabb0c08af795787a6c004d8f532230ae6e9925cbbefb0b28b79295d615f@127.0.0.1:30303
-	splitAddrs := strings.Split(config.P2P.PersistentPeers, ",")
-	slog.Debug("splitAddrs:", "splitAddrs", splitAddrs)
+	// splitAddrs := strings.Split(config.P2P.PersistentPeers, ",")
+	// slog.Debug("splitAddrs:", "splitAddrs", splitAddrs)
 
-	for _, splitAddr := range splitAddrs {
-		// formattedNodeAddr := CosmosNodeToP2PNode(splitAddr)
-		// bootstrapNodes = append(bootstrapNodes, formattedNodeAddr)
-		bootstrapNodes = append(bootstrapNodes, fmt.Sprintf("enode://%s", splitAddr))
-	}
+	// for _, splitAddr := range splitAddrs {
+	// 	// formattedNodeAddr := CosmosNodeToP2PNode(splitAddr)
+	// 	// bootstrapNodes = append(bootstrapNodes, formattedNodeAddr)
+	// 	bootstrapNodes = append(bootstrapNodes, fmt.Sprintf("enode://%s", splitAddr))
+	// }
+
+	bootstrapNodes = append(bootstrapNodes, "enr:-Lq4QGrX31VP2tbOMWr7MYdVmx3tXK0Cu-7ZkRUDkLiDpaJiFy99GQnCJkiZ1vGKQjq5iOpjeSCbN57iuZSQ0xbvWkiGAZZnCR1Jh2F0dG5ldHOIGAAAAAAAAACEZXRoMpD1rPGvAQAAAAAiAQAAAAAAgmlkgnY0iXNlY3AyNTZrMaECYdwuc1sQUM8I7Ht9XY0CR2IQnhtbOe2yKE4gEKZdzqqIc3luY25ldHMAg3RjcIJoIIN1ZHCCaCA")
+	bootstrapNodes = append(bootstrapNodes, "enr:-Lq4QOOcnncN4XpGTzHE8xYOPezlRCh0qlWmOMGnIWmmjZq4Qqr3AD784enBIE-Qowe-gO-a6c5hQd_fOuVB8O4ZeEmGAZZnGMO9h2F0dG5ldHOIAAAAABgAAACEZXRoMpD1rPGvAQAAAAAiAQAAAAAAgmlkgnY0iXNlY3AyNTZrMaEDELTezmnULUdzz4ChUShZ-EljQrtodv3xj-BHx-KldnOIc3luY25ldHMAg3RjcIJoIIN1ZHCCaCA")
+	bootstrapNodes = append(bootstrapNodes, "enr:-Lq4QDvfm8C1FlBzLPfa3xSchOSyITxgxBgxWncFVVfkez37R0tp_dT0dlFBKfhUlQc9Ao0oFh4lsUHku_hRkEWwRziGAZZnGMPrh2F0dG5ldHOIAAAAAAAAABiEZXRoMpD1rPGvAQAAAAAiAQAAAAAAgmlkgnY0iXNlY3AyNTZrMaECZwcGbDJ_Oqu0RDeusn1w0FEXkoE8jgBFTmIr_DIcuhmIc3luY25ldHMAg3RjcIJoIIN1ZHCCaCA")
+	bootstrapNodes = append(bootstrapNodes, "enr:-Lq4QIDpEW_GvbiajdLT8wmZUrKLetEpHSODX-vmNz8Q3BKNCRiyzLDbUoZzt4riYrUx9Sa4G4XP_-oWmxtD1FVhthuGAZZnGMPQh2F0dG5ldHOIAAAAAACAAQCEZXRoMpD1rPGvAQAAAAAiAQAAAAAAgmlkgnY0iXNlY3AyNTZrMaECcYl38iNXRhwj0i_vGCg-0_LCVp9IOoXYy1dDHXB9tgKIc3luY25ldHMAg3RjcIJoIIN1ZHCCaCA")
 	slog.Info("bootstrapNodes:", "bootstrapNodes", bootstrapNodes)
 
 	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QGZ6np5N03sJeQPI1ep3L_13ckTJQ5TXcj81mk_UV3oeA-mMtcw7JViYP3cgSBmvxQV74MRTTfUNM5TUqr_D2BiGAZRynhEfh2F0dG5ldHOIAAAAAAAAAACEZXRoMpBLDKxQAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfWYOJc2VjcDI1NmsxoQMkZ9waUAVNMFXOY3B5VlDTqLZHqb4MqKOFXSvh-k4dUohzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-3
