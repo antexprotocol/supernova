@@ -158,12 +158,14 @@ func NewNode(
 	var bootstrapNodes []string
 
 	// example format: /ip4/127.0.0.1/udp/1234
+	// enode  format: enode://c35c3ec90a8a51fd5703594c6303382f3ae6b2ecb9589bab2c04b3794f2bc3fc2631dabb0c08af795787a6c004d8f532230ae6e9925cbbefb0b28b79295d615f@127.0.0.1:30303
 	splitAddrs := strings.Split(config.P2P.PersistentPeers, ",")
 	slog.Debug("splitAddrs:", "splitAddrs", splitAddrs)
 
 	for _, splitAddr := range splitAddrs {
-		formattedNodeAddr := CosmosNodeToP2PNode(splitAddr)
-		bootstrapNodes = append(bootstrapNodes, formattedNodeAddr)
+		// formattedNodeAddr := CosmosNodeToP2PNode(splitAddr)
+		// bootstrapNodes = append(bootstrapNodes, formattedNodeAddr)
+		bootstrapNodes = append(bootstrapNodes, fmt.Sprintf("enode://%s", splitAddr))
 	}
 	slog.Info("bootstrapNodes:", "bootstrapNodes", bootstrapNodes)
 
