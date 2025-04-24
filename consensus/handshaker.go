@@ -53,15 +53,17 @@ func (h *Handshaker) NBlocks() int {
 
 // TODO: retry the handshake/replay if it fails ?
 func (h *Handshaker) Handshake(ctx context.Context, proxyApp proxy.AppConns) error {
-	fmt.Println("Start handshake")
+	h.logger.Info("Start handshake")
 	// Handshake is done via ABCI Info on the query conn.
 	res, err := proxyApp.Query().Info(ctx, proxy.InfoRequest)
 	if err != nil {
+		h.logger.Error("error calling Info", "err", err)
 		return fmt.Errorf("error calling Info: %v", err)
 	}
 
 	blockHeight := res.LastBlockHeight
 	if blockHeight < 0 {
+		h.logger.Error("got a negative last block height", "height", blockHeight)
 		return fmt.Errorf("got a negative last block height (%d) from the app", blockHeight)
 	}
 	appHash := res.LastBlockAppHash
@@ -83,6 +85,7 @@ func (h *Handshaker) Handshake(ctx context.Context, proxyApp proxy.AppConns) err
 	// Replay blocks up to the latest in the blockstore.
 	appHash, err = h.ReplayBlocks(ctx, appHash, blockHeight, proxyApp)
 	if err != nil {
+		h.logger.Error("error on replay", "err", err)
 		return fmt.Errorf("error on replay: %v", err)
 	}
 
@@ -122,6 +125,7 @@ func (h *Handshaker) ReplayBlocks(
 		for i, val := range h.genDoc.Validators {
 			// Ensure that the public key type is supported.
 			if _, ok := cmttypes.ABCIPubKeyTypesToNames[val.PubKey.Type()]; !ok {
+				h.logger.Error("unspported key type", "type", val.PubKey.Type(), "name", val.Name)
 				fmt.Println("ERROR:! unspported key type ", val.PubKey.Type(), val.Name)
 				return nil, fmt.Errorf("unsupported public key type %s (validator name: %s)", val.PubKey.Type(), val.Name)
 			}
@@ -139,21 +143,27 @@ func (h *Handshaker) ReplayBlocks(
 			AppStateBytes:   h.genDoc.AppState,
 		}
 		fmt.Println("Consensus Params: ", pbparams)
+		h.logger.Info("Consensus Params: ", pbparams)
+
 		fmt.Println("Consensus Params: ", pbparams.Version, pbparams.Block.MaxBytes, pbparams.Block.MaxBytes, pbparams.Evidence.MaxAgeDuration)
+		h.logger.Info("Consensus Params: ", pbparams.Version, pbparams.Block.MaxBytes, pbparams.Block.MaxBytes, pbparams.Evidence.MaxAgeDuration)
 		res, err := proxyApp.Consensus().InitChain(context.TODO(), req)
 		if err != nil {
+			h.logger.Error("InitChain failed: ", "err", err)
 			fmt.Println("InitChain failed: ", err)
 			return nil, err
 		}
 
 		appHash = res.AppHash
 		fmt.Println("InitChain Response Validators: ", len(res.Validators))
+		h.logger.Info("InitChain Response Validators: ", len(res.Validators))
 
 		gene := genesis.NewGenesis(h.genDoc, res.Validators)
 
 		err = h.chain.Initialize(gene)
 		if err != nil {
 			h.logger.Error("chain initialize failed", "err", err)
+			return nil, err
 		}
 
 		for i, v := range res.Validators {
@@ -161,11 +171,14 @@ func (h *Handshaker) ReplayBlocks(
 		}
 		err = h.chain.SaveInitChainResponse(res)
 		if err != nil {
+			h.logger.Error("Save InitChainResponse failed", "err", err)
 			fmt.Println("Save InitChainResponse failed", err)
+			return nil, err
 		}
 	} else {
 		err := h.chain.Initialize(nil)
 		if err != nil {
+			h.logger.Error("chain initialize failed", "err", err)
 			return nil, err
 		}
 

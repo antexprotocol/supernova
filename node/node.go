@@ -146,7 +146,7 @@ func NewNode(
 	if err != nil {
 		return nil, err
 	}
-	err = doHandshake(ctx, chain, genDoc, eventBus, proxyApp)
+	err = doHandshake(ctx, chain, genDoc, eventBus, proxyApp, logger)
 	if err != nil {
 		logger.Error("Handshake failed", "err", err)
 		return nil, err
@@ -159,18 +159,10 @@ func NewNode(
 
 	// example format: /ip4/127.0.0.1/udp/1234
 	splitAddrs := strings.Split(config.P2P.PersistentPeers, ",")
-	slog.Info("splitAddrs:", "splitAddrs", splitAddrs)
+	slog.Debug("splitAddrs:", "splitAddrs", splitAddrs)
 
 	for _, splitAddr := range splitAddrs {
-		ipPorts := strings.Split(splitAddr, "@")
-		slog.Info("ipPorts:", "ipPorts", ipPorts)
-
-		ipPort := strings.Split(ipPorts[1], ":")
-		slog.Info("ipPort:", "ipPort", ipPort)
-
-		formattedNodeAddr := fmt.Sprintf("/ip4/%s/tcp/%s", ipPort[0], ipPort[1])
-		slog.Info("formattedNodeAddr:", "formattedNodeAddr", formattedNodeAddr)
-
+		formattedNodeAddr := CosmosNodeToP2PNode(splitAddr)
 		bootstrapNodes = append(bootstrapNodes, formattedNodeAddr)
 	}
 	slog.Info("bootstrapNodes:", "bootstrapNodes", bootstrapNodes)
@@ -288,6 +280,7 @@ func newP2PService(ctx context.Context, config *cmtcfg.Config, bootstrapNodes []
 		// DB:            n.mainDB,
 	})
 	if err != nil {
+		slog.Error("error creating p2p service", "err", err)
 		return nil
 	}
 	pubsub.WithSubscriptionFilter(pubsub.NewAllowlistSubscriptionFilter(p2p.ConsensusTopic))
@@ -301,6 +294,7 @@ func newP2PService(ctx context.Context, config *cmtcfg.Config, bootstrapNodes []
 	go svc.Start()
 	return svc
 }
+
 func customTopicValidator(ctx context.Context, peerID peer.ID, msg *pubsub.Message) (pubsub.ValidationResult, error) {
 	// Perform custom validation
 	// Example: Check message size, content, etc.
@@ -311,16 +305,31 @@ func customTopicValidator(ctx context.Context, peerID peer.ID, msg *pubsub.Messa
 	return pubsub.ValidationReject, errors.New("rejected")
 }
 
+func CosmosNodeToP2PNode(cosmosNodeAddr string) string {
+	ipPorts := strings.Split(cosmosNodeAddr, "@")
+	slog.Debug("ipPorts:", "ipPorts", ipPorts)
+
+	ipPort := strings.Split(ipPorts[1], ":")
+	slog.Debug("ipPort:", "ipPort", ipPort)
+
+	formattedNodeAddr := fmt.Sprintf("/ip4/%s/tcp/%s", ipPort[0], ipPort[1])
+	slog.Debug("formattedNodeAddr:", "formattedNodeAddr", formattedNodeAddr)
+	return formattedNodeAddr
+}
+
 func doHandshake(
 	ctx context.Context,
 	c *chain.Chain,
 	genDoc *cmttypes.GenesisDoc,
 	eventBus cmttypes.BlockEventPublisher,
 	proxyApp proxy.AppConns,
+	logger log.Logger,
 ) error {
 	handshaker := consensus.NewHandshaker(c, genDoc)
+	handshaker.SetLogger(logger.With("module", "handshaker"))
 	handshaker.SetEventBus(eventBus)
 	if err := handshaker.Handshake(ctx, proxyApp); err != nil {
+		logger.Error("error during handshake", "err", err)
 		return fmt.Errorf("error during handshake: %v", err)
 	}
 	return nil

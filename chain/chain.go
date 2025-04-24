@@ -108,7 +108,10 @@ func New(kv db.DB, verbose bool) (*Chain, error) {
 func (c *Chain) Initialize(gene *genesis.Genesis) error {
 	var bestBlock *block.Block
 
-	if bestBlockID, _ := loadBestBlockID(c.kv); bytes.Equal(bestBlockID.Bytes(), (&types.Bytes32{}).Bytes()) {
+	bestBlockID, _ := loadBestBlockID(c.kv)
+	c.logger.Info("Initializing chain", "bestBlockID", bestBlockID)
+
+	if bytes.Equal(bestBlockID.Bytes(), (&types.Bytes32{}).Bytes()) {
 		// could not load bestblock, usually this means chain is not initialized
 		genesisBlock, err := gene.Build()
 		if err != nil {
