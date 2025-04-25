@@ -8,7 +8,6 @@ package node
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -41,7 +40,6 @@ import (
 	cmtproxy "github.com/cometbft/cometbft/proxy"
 	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/pkg/errors"
 )
 
@@ -157,11 +155,7 @@ func NewNode(
 	txPool := txpool.New(chain, txpool.DefaultTxPoolOptions)
 	defer func() { slog.Info("closing tx pool..."); txPool.Close() }()
 
-	persistentPeers := strings.Split(config.P2P.PersistentPeers, ",")
-	bootstrapNodes := make([]string, 0, len(persistentPeers))
-	for _, peer := range persistentPeers {
-		bootstrapNodes = append(bootstrapNodes, fmt.Sprintf("enr:%s", base64.RawURLEncoding.EncodeToString([]byte(peer))))
-	}
+	bootstrapNodes := strings.Split(config.P2P.PersistentPeers, ",")
 	slog.Info("parsed bootstrap nodes:", "bootstrapNodes", bootstrapNodes)
 
 	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QGZ6np5N03sJeQPI1ep3L_13ckTJQ5TXcj81mk_UV3oeA-mMtcw7JViYP3cgSBmvxQV74MRTTfUNM5TUqr_D2BiGAZRynhEfh2F0dG5ldHOIAAAAAAAAAACEZXRoMpBLDKxQAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfWYOJc2VjcDI1NmsxoQMkZ9waUAVNMFXOY3B5VlDTqLZHqb4MqKOFXSvh-k4dUohzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-3
@@ -280,16 +274,6 @@ func newP2PService(ctx context.Context, config *cmtcfg.Config, bootstrapNodes []
 		slog.Error("error creating p2p service", "err", err)
 		return nil
 	}
-
-	enc, err := rlp.EncodeToBytes(svc.ENR())
-	if err != nil {
-		slog.Error("error encoding ENR", "err", err)
-		return nil
-	}
-
-	b64 := base64.RawURLEncoding.EncodeToString(enc)
-	enrString := "enr:" + b64
-	slog.Info("p2p node ENR:", "enr", enrString)
 
 	pubsub.WithSubscriptionFilter(pubsub.NewAllowlistSubscriptionFilter(p2p.ConsensusTopic))
 	p := svc.PubSub()

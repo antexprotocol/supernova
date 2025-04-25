@@ -6,6 +6,7 @@ package p2p
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/base64"
 	"log/slog"
 	"net"
 	"sync"
@@ -26,6 +27,7 @@ import (
 	"github.com/antexprotocol/supernova/libs/p2p/types"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/enr"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -223,6 +225,17 @@ func (s *Service) Start() {
 		}
 
 		s.dv5Listener = listener
+
+		enc, err := rlp.EncodeToBytes(s.ENR())
+		if err != nil {
+			slog.Error("error encoding ENR", "err", err)
+			return
+		}
+
+		b64 := base64.RawURLEncoding.EncodeToString(enc)
+		enrString := "enr:" + b64
+		slog.Info("p2p node ENR:", "enr", enrString)
+
 		go s.listenForNewNodes()
 	}
 
