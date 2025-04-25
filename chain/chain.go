@@ -213,26 +213,6 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 		if _, err = loadBestQC(c.kv); err != nil {
 			saveBestQC(c.kv, geneEscortQC)
 		}
-
-		vSet := gene.ValidatorSet()
-		if _, err := loadValidatorSet(c.kv, geneBlock.ValidatorsHash()); err != nil {
-			c.logger.Info("saving genesis validator set", "hash", hex.EncodeToString(vSet.Hash()), "size", vSet.Size())
-			err = saveValidatorSet(c.kv, vSet)
-			if err != nil {
-				return err
-			}
-		}
-		bestBlock.BlockHeader.ValidatorsHash = geneBlock.ValidatorsHash()
-
-		nextVSet := gene.NextValidatorSet()
-		if _, err := loadValidatorSet(c.kv, geneBlock.NextValidatorsHash()); err != nil {
-			c.logger.Info("saving genesis next validator set", "hash", hex.EncodeToString(nextVSet.Hash()), "size", nextVSet.Size())
-			err = saveValidatorSet(c.kv, nextVSet)
-			if err != nil {
-				return err
-			}
-		}
-		bestBlock.BlockHeader.NextValidatorsHash = geneBlock.NextValidatorsHash()
 	}
 
 	bestQC, err := loadBestQC(c.kv)
