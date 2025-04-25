@@ -1008,10 +1008,10 @@ func (c *Chain) GetQCForBlock(blkID types.Bytes32) (*block.QuorumCert, error) {
 // use buildLastCommitInfoFromStore.
 func (c *Chain) BuildLastCommitInfo(parent *block.Block, blk *block.Block) abci.CommitInfo {
 	vset := c.GetValidatorsByHash(parent.ValidatorsHash())
-	// if blk.Number() == 0 {
-	// 	fmt.Println("parent is genesis", parent.NextValidatorsHash())
-	// 	vset = c.GetValidatorsByHash(parent.NextValidatorsHash())
-	// }
+	if blk.Number() == 0 {
+		fmt.Println("parent is genesis", parent.NextValidatorsHash())
+		vset = c.GetValidatorsByHash(parent.NextValidatorsHash())
+	}
 	qc := blk.QC
 	if vset == nil {
 		if parent.Number() == 0 {

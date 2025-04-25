@@ -64,6 +64,10 @@ func (e *Executor) ProcessProposal(blk *block.Block) (bool, error) {
 		parentDraft := e.chain.GetDraft(blk.ParentID())
 		parent = parentDraft.ProposedBlock
 	}
+	if blk.Number() == 0 {
+		fmt.Println("parent is genesis", parent.NextValidatorsHash())
+		vset = e.chain.GetValidatorsByHash(parent.NextValidatorsHash())
+	}
 	proposerAddr, _ := vset.GetByIndex(int32(blk.ProposerIndex()))
 	resp, err := e.proxyApp.ProcessProposal(context.TODO(), &v1.ProcessProposalRequest{
 		Hash:               blk.ID().Bytes(),
@@ -127,7 +131,19 @@ func (e *Executor) applyBlock(blk *block.Block, syncingToHeight int64) (appHash 
 		parentDraft := e.chain.GetDraft(blk.ParentID())
 		parent = parentDraft.ProposedBlock
 	}
+
+	if blk.Number() == 0 {
+		fmt.Println("parent is genesis", parent.NextValidatorsHash())
+		vset = e.chain.GetValidatorsByHash(parent.NextValidatorsHash())
+	}
 	proposerAddr, _ := vset.GetByIndex(int32(blk.ProposerIndex()))
+
+	e.logger.Info("applying block", "block_number", blk.Number(),
+		"block_validators_hash", blk.ValidatorsHash(),
+		"block_val_set", vset.String(),
+		"block_proposer", proposerAddr,
+	)
+
 	abciResponse, err := e.proxyApp.FinalizeBlock(context.TODO(), &abci.FinalizeBlockRequest{
 		Hash:               blk.ID().Bytes(),
 		NextValidatorsHash: blk.Header().NextValidatorsHash,
