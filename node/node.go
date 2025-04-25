@@ -41,6 +41,7 @@ import (
 	cmtproxy "github.com/cometbft/cometbft/proxy"
 	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/pkg/errors"
 )
 
@@ -279,6 +280,17 @@ func newP2PService(ctx context.Context, config *cmtcfg.Config, bootstrapNodes []
 		slog.Error("error creating p2p service", "err", err)
 		return nil
 	}
+
+	enc, err := rlp.EncodeToBytes(svc.ENR())
+	if err != nil {
+		slog.Error("error encoding ENR", "err", err)
+		return nil
+	}
+
+	b64 := base64.RawURLEncoding.EncodeToString(enc)
+	enrString := "enr:" + b64
+	slog.Info("p2p node ENR:", "enr", enrString)
+
 	pubsub.WithSubscriptionFilter(pubsub.NewAllowlistSubscriptionFilter(p2p.ConsensusTopic))
 	p := svc.PubSub()
 
