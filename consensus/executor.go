@@ -129,6 +129,10 @@ func (e *Executor) applyBlock(blk *block.Block, syncingToHeight int64) (appHash 
 	parent, err := e.chain.GetBlock(blk.ParentID())
 	if err != nil {
 		parentDraft := e.chain.GetDraft(blk.ParentID())
+		if parentDraft == nil {
+			err = fmt.Errorf("parent draft not found")
+			return
+		}
 		parent = parentDraft.ProposedBlock
 	}
 
