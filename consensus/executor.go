@@ -141,7 +141,7 @@ func (e *Executor) applyBlock(blk *block.Block, syncingToHeight int64) (appHash 
 	e.logger.Info("applying block", "block_number", blk.Number(),
 		"block_validators_hash", blk.ValidatorsHash(),
 		"block_val_set", vset.String(),
-		"block_proposer", proposerAddr,
+		"block_proposer", hex.EncodeToString(proposerAddr),
 	)
 
 	abciResponse, err := e.proxyApp.FinalizeBlock(context.TODO(), &abci.FinalizeBlockRequest{
@@ -157,6 +157,7 @@ func (e *Executor) applyBlock(blk *block.Block, syncingToHeight int64) (appHash 
 	})
 	if err != nil {
 		fmt.Println("Finalize block failed: ", err)
+		return
 	}
 	appHash = abciResponse.AppHash
 	e.logger.Info(

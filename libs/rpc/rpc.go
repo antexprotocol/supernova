@@ -239,7 +239,7 @@ func (s *RPCServer) handleRPC(stream network.Stream) {
 		err = s.Reply(stream, GET_BLOCKS_FROM_NUM, result, true)
 	case GET_TXS:
 		// FIXME: impl this
-
+		s.logger.Info("need to implement get txs")
 	}
 	if err != nil {
 		s.logger.Warn(fmt.Sprintf("failed to write %v response", msgName), "err", err)
