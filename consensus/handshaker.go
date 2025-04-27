@@ -146,6 +146,10 @@ func (h *Handshaker) ReplayBlocks(
 		}
 		validatorSet := cmttypes.NewValidatorSet(validators)
 		nextVals := cmttypes.TM2PB.ValidatorUpdates(validatorSet)
+
+		h.logger.Info("InitChain req validators", validatorSet.String(),
+			"initChain req nextVals")
+
 		pbparams := h.genDoc.ConsensusParams.ToProto()
 		req := &abci.InitChainRequest{
 			Time:            h.genDoc.GenesisTime,
@@ -170,6 +174,9 @@ func (h *Handshaker) ReplayBlocks(
 		appHash = res.AppHash
 		fmt.Println("InitChain Response Validators: ", len(res.Validators))
 		h.logger.Info("InitChain Response Validators: ", len(res.Validators))
+
+		h.logger.Info("InitChain genesis validator", h.genDoc.Validators,
+			"initChain response validators", res.Validators)
 
 		gene := genesis.NewGenesis(h.genDoc, res.Validators)
 
