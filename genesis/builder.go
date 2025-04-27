@@ -69,6 +69,12 @@ func (b *Builder) SetValidatorUpdate(validatorUpdate []v1.ValidatorUpdate) *Buil
 	b.nextVSet = cmn.ApplyUpdatesToValidatorSet(b.vset, validatorUpdate)
 
 	fmt.Println("SetValidatorUpdate nextVSet", b.nextVSet.String())
+
+	// recheck vset
+	if len(b.vset.Validators) == 0 {
+		b.vset.Proposer = b.nextVSet.Proposer
+		b.vset.Validators = b.nextVSet.Validators
+	}
 	return b
 }
 

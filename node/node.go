@@ -204,6 +204,7 @@ func NewNode(
 	bestBlock := chain.BestBlock()
 
 	fmt.Printf(`Starting %v
+	Chain           [ %v ]    
     Network         [ %v ]    
     Best block      [ %v #%v @%v ]
     Forks           [ %v ]
@@ -211,6 +212,7 @@ func NewNode(
     API portal      [ %v ]
 `,
 		types.MakeName("Supernova", config.BaseConfig.Version),
+		genDoc.ChainID,
 		geneBlock.ID(),
 		bestBlock.ID(), bestBlock.Number(), time.Unix(int64(bestBlock.Timestamp()), 0),
 		types.GetForkConfig(geneBlock.ID()),

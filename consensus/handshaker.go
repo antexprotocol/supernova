@@ -25,8 +25,7 @@ type Handshaker struct {
 	nBlocks int // number of blocks applied to the state
 }
 
-func NewHandshaker(c *chain.Chain, genDoc *cmttypes.GenesisDoc,
-) *Handshaker {
+func NewHandshaker(c *chain.Chain, genDoc *cmttypes.GenesisDoc) *Handshaker {
 	return &Handshaker{
 		chain:    c,
 		eventBus: cmttypes.NopEventBus{},
@@ -148,7 +147,9 @@ func (h *Handshaker) ReplayBlocks(
 		nextVals := cmttypes.TM2PB.ValidatorUpdates(validatorSet)
 
 		h.logger.Info("InitChain req validators", validatorSet.String(),
-			"initChain req nextVals")
+			"initChain req nextVals", nextVals)
+		fmt.Println("InitChain req validators", validatorSet.String(),
+			"initChain req nextVals", nextVals)
 
 		pbparams := h.genDoc.ConsensusParams.ToProto()
 		req := &abci.InitChainRequest{
