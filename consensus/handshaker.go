@@ -74,6 +74,12 @@ func (h *Handshaker) Handshake(ctx context.Context, proxyApp proxy.AppConns) err
 		"software-version", res.Version,
 		"protocol-version", res.AppVersion,
 	)
+	fmt.Println("ABCI Handshake App Info",
+		"height", blockHeight,
+		"hash", log.NewLazySprintf("%X", appHash),
+		"software-version", res.Version,
+		"protocol-version", res.AppVersion,
+	)
 
 	// best := h.chain.BestBlock()
 
@@ -90,6 +96,8 @@ func (h *Handshaker) Handshake(ctx context.Context, proxyApp proxy.AppConns) err
 	}
 
 	h.logger.Info("Completed ABCI Handshake - CometBFT and App are synced",
+		"appHeight", blockHeight, "appHash", log.NewLazySprintf("%X", appHash))
+	fmt.Println("Completed ABCI Handshake - CometBFT and App are synced",
 		"appHeight", blockHeight, "appHash", log.NewLazySprintf("%X", appHash))
 
 	// TODO: (on restart) replay mempool
@@ -117,6 +125,11 @@ func (h *Handshaker) ReplayBlocks(
 		"appHeight",
 		appBlockHeight,
 		"storeHeight",
+		storeBlockHeight)
+	fmt.Println("ABCI Replay Blocks",
+		"appHeight",
+		appBlockHeight,
+		"storeBlockHeight",
 		storeBlockHeight)
 
 	// If appBlockHeight == 0 it means that we are at genesis and hence should send InitChain.
@@ -165,6 +178,7 @@ func (h *Handshaker) ReplayBlocks(
 			h.logger.Error("chain initialize failed", "err", err)
 			return nil, err
 		}
+		fmt.Println("chain initialized, best block", h.chain.BestBlock().Number())
 
 		for i, v := range res.Validators {
 			fmt.Println(" ", i, ": ", v.PubKeyType, hex.EncodeToString(v.PubKeyBytes))
