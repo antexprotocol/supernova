@@ -119,7 +119,7 @@ func NewNode(
 ) (*Node, error) {
 	InitLogger(config)
 
-	mainDB, err := dbProvider(&cmtcfg.DBContext{ID: "maindb", Config: config})
+	mainDB, err := dbProvider(&cmtcfg.DBContext{ID: "application", Config: config})
 
 	genDoc, err := LoadGenesisDoc(mainDB, genesisDocProvider)
 	if err != nil {
