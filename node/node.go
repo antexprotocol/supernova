@@ -120,9 +120,14 @@ func NewNode(
 	InitLogger(config)
 
 	mainDB, err := dbProvider(&cmtcfg.DBContext{ID: "application", Config: config})
+	if err != nil {
+		slog.Error("error creating mainDB", "err", err)
+		return nil, err
+	}
 
 	genDoc, err := LoadGenesisDoc(mainDB, genesisDocProvider)
 	if err != nil {
+		slog.Error("error loading genesis doc", "err", err)
 		return nil, err
 	}
 
