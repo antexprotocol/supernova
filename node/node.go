@@ -119,7 +119,7 @@ func NewNode(
 ) (*Node, error) {
 	InitLogger(config)
 
-	mainDB, err := dbProvider(&cmtcfg.DBContext{ID: "application", Config: config})
+	mainDB, err := dbProvider(&cmtcfg.DBContext{ID: "maindb", Config: config})
 	if err != nil {
 		slog.Error("error creating mainDB", "err", err)
 		return nil, err
