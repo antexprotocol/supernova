@@ -1006,6 +1006,8 @@ func (c *Chain) BuildLastCommitInfo(parent *block.Block, blk *block.Block) abci.
 		votesSize    = qc.BitArray.Size()
 	)
 
+	fmt.Printf("BuildLastCommitInfo, commiteeSize: %d, votesSize: %d, qc.Round: %d, blk.Number: %d, parent: %v\n", commiteeSize, votesSize, qc.Round, blk.Number(), parent)
+
 	if commiteeSize != votesSize {
 		panic(fmt.Sprintf("committee size (%d) doesn't match with votes size (%d) at height %d", commiteeSize, votesSize, blk.Number()))
 	}
