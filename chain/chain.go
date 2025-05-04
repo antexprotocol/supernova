@@ -1012,14 +1012,19 @@ func (c *Chain) BuildLastCommitInfo(parent *block.Block, blk *block.Block) abci.
 		panic(fmt.Sprintf("committee size (%d) doesn't match with votes size (%d) at height %d", commiteeSize, votesSize, blk.Number()))
 	}
 
-	votes := make([]abci.VoteInfo, vset.Size())
+	// votes := make([]abci.VoteInfo, vset.Size())
+	votes := make([]abci.VoteInfo, 0)
 	for i := 0; i < votesSize; i++ {
 		if qc.BitArray.GetIndex(i) {
 			_, v := vset.GetByIndex(int32(i))
-			votes[i] = abci.VoteInfo{
+			// votes[i] = abci.VoteInfo{
+			// 	Validator:   abci.Validator{Address: v.Address.Bytes(), Power: int64(v.VotingPower)},
+			// 	BlockIdFlag: cmtproto.BlockIDFlagCommit,
+			// }
+			votes = append(votes, abci.VoteInfo{
 				Validator:   abci.Validator{Address: v.Address.Bytes(), Power: int64(v.VotingPower)},
 				BlockIdFlag: cmtproto.BlockIDFlagCommit,
-			}
+			})
 		}
 	}
 
