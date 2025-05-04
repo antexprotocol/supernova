@@ -69,7 +69,6 @@ func (e *Executor) ProcessProposal(blk *block.Block) (bool, error) {
 		vset = e.chain.GetValidatorsByHash(parent.NextValidatorsHash())
 	}
 	proposerAddr, _ := vset.GetByIndex(int32(blk.ProposerIndex()))
-	fmt.Println("proposerAddr make a proposal,", hex.EncodeToString(proposerAddr))
 	resp, err := e.proxyApp.ProcessProposal(context.TODO(), &v1.ProcessProposalRequest{
 		Hash:               blk.ID().Bytes(),
 		Height:             int64(blk.Number()),
