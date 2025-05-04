@@ -1023,5 +1023,7 @@ func (c *Chain) BuildLastCommitInfo(parent *block.Block, blk *block.Block) abci.
 		}
 	}
 
+	fmt.Printf("BuildLastCommitInfo, votes: %v, blk.Number: %d, qc.Round: %d\n", votes, blk.Number(), qc.Round)
+
 	return abci.CommitInfo{Round: int32(qc.Round), Votes: votes}
 }
