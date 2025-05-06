@@ -75,3 +75,10 @@ func (s *Service) Send(ctx context.Context, message interface{}, baseTopic strin
 
 	return stream, nil
 }
+
+func (s *Service) CloseStream(stream network.Stream) {
+	if stream == nil {
+		return
+	}
+	stream.Close()
+}
