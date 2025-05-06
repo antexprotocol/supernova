@@ -148,8 +148,8 @@ func (h *Handshaker) ReplayBlocks(
 
 		h.logger.Info("InitChain req validators", validatorSet.String(),
 			"initChain req nextVals", nextVals)
-		fmt.Println("InitChain req validators", validatorSet.String(),
-			"initChain req nextVals", nextVals)
+		// fmt.Println("InitChain req validators", validatorSet.String(),
+		// 	"initChain req nextVals", nextVals)
 
 		pbparams := h.genDoc.ConsensusParams.ToProto()
 		req := &abci.InitChainRequest{
@@ -160,10 +160,10 @@ func (h *Handshaker) ReplayBlocks(
 			Validators:      nextVals,
 			AppStateBytes:   h.genDoc.AppState,
 		}
-		fmt.Println("Consensus Params: ", pbparams)
+		// fmt.Println("Consensus Params: ", pbparams)
 		h.logger.Info("Consensus Params: ", pbparams)
 
-		fmt.Println("Consensus Params: ", pbparams.Version, pbparams.Block.MaxBytes, pbparams.Block.MaxBytes, pbparams.Evidence.MaxAgeDuration)
+		// fmt.Println("Consensus Params: ", pbparams.Version, pbparams.Block.MaxBytes, pbparams.Block.MaxBytes, pbparams.Evidence.MaxAgeDuration)
 		h.logger.Info("Consensus Params: ", pbparams.Version, pbparams.Block.MaxBytes, pbparams.Block.MaxBytes, pbparams.Evidence.MaxAgeDuration)
 		res, err := proxyApp.Consensus().InitChain(context.TODO(), req)
 		if err != nil {
@@ -173,11 +173,11 @@ func (h *Handshaker) ReplayBlocks(
 		}
 
 		appHash = res.AppHash
-		fmt.Println("InitChain Response Validators: ", len(res.Validators))
+		// fmt.Println("InitChain Response Validators: ", len(res.Validators))
 		h.logger.Info("InitChain Response Validators: ", len(res.Validators))
 
-		h.logger.Info("InitChain genesis validator", h.genDoc.Validators,
-			"initChain response validators", res.Validators)
+		// h.logger.Info("InitChain genesis validator", h.genDoc.Validators,
+		// 	"initChain response validators", res.Validators)
 
 		gene := genesis.NewGenesis(h.genDoc, res.Validators)
 
@@ -186,7 +186,7 @@ func (h *Handshaker) ReplayBlocks(
 			h.logger.Error("chain initialize failed", "err", err)
 			return nil, err
 		}
-		fmt.Println("chain initialized, best block", h.chain.BestBlock().Number())
+		// fmt.Println("chain initialized, best block", h.chain.BestBlock().Number())
 
 		for i, v := range res.Validators {
 			fmt.Println(" ", i, ": ", v.PubKeyType, hex.EncodeToString(v.PubKeyBytes))
@@ -194,7 +194,7 @@ func (h *Handshaker) ReplayBlocks(
 		err = h.chain.SaveInitChainResponse(res)
 		if err != nil {
 			h.logger.Error("Save InitChainResponse failed", "err", err)
-			fmt.Println("Save InitChainResponse failed", err)
+			// fmt.Println("Save InitChainResponse failed", err)
 			return nil, err
 		}
 	} else {

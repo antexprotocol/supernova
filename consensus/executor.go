@@ -65,7 +65,7 @@ func (e *Executor) ProcessProposal(blk *block.Block) (bool, error) {
 		parent = parentDraft.ProposedBlock
 	}
 	if blk.Number() == 0 {
-		fmt.Println("parent is genesis", parent.NextValidatorsHash())
+		// fmt.Println("parent is genesis", parent.NextValidatorsHash())
 		vset = e.chain.GetValidatorsByHash(parent.NextValidatorsHash())
 	}
 	proposerAddr, _ := vset.GetByIndex(int32(blk.ProposerIndex()))
@@ -137,7 +137,7 @@ func (e *Executor) applyBlock(blk *block.Block, syncingToHeight int64) (appHash 
 	}
 
 	if blk.Number() == 0 {
-		fmt.Println("parent is genesis", parent.NextValidatorsHash())
+		// fmt.Println("parent is genesis", parent.NextValidatorsHash())
 		vset = e.chain.GetValidatorsByHash(parent.NextValidatorsHash())
 	}
 	proposerAddr, _ := vset.GetByIndex(int32(blk.ProposerIndex()))

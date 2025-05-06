@@ -6,8 +6,6 @@
 package genesis
 
 import (
-	"fmt"
-
 	"github.com/antexprotocol/supernova/block"
 	cmn "github.com/antexprotocol/supernova/libs/common"
 	"github.com/antexprotocol/supernova/types"
@@ -61,20 +59,20 @@ func (b *Builder) SetGenesisDoc(gdoc *cmttypes.GenesisDoc) *Builder {
 	b.vset = cmttypes.NewValidatorSet(vs)
 	b.timestamp = uint64(gdoc.GenesisTime.Unix())
 
-	fmt.Println("SetGenesisDoc vset", b.vset.String())
+	// fmt.Println("SetGenesisDoc vset", b.vset.String())
 	return b
 }
 
 func (b *Builder) SetValidatorUpdate(validatorUpdate []v1.ValidatorUpdate) *Builder {
 	b.nextVSet = cmn.ApplyUpdatesToValidatorSet(b.vset, validatorUpdate)
 
-	fmt.Println("SetValidatorUpdate nextVSet", b.nextVSet.String())
+	// fmt.Println("SetValidatorUpdate nextVSet", b.nextVSet.String())
 
 	// recheck vset
-	if len(b.vset.Validators) == 0 {
-		b.vset.Proposer = b.nextVSet.Proposer
-		b.vset.Validators = b.nextVSet.Validators
-	}
+	// if len(b.vset.Validators) == 0 {
+	// 	b.vset.Proposer = b.nextVSet.Proposer
+	// 	b.vset.Validators = b.nextVSet.Validators
+	// }
 	return b
 }
 
