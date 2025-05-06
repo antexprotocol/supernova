@@ -10,9 +10,9 @@ import (
 	ecdsaprysm "github.com/OffchainLabs/prysm/v6/crypto/ecdsa"
 	"github.com/OffchainLabs/prysm/v6/runtime/version"
 	"github.com/libp2p/go-libp2p"
-	mplex "github.com/libp2p/go-libp2p-mplex"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	libp2pquic "github.com/libp2p/go-libp2p/p2p/transport/quic"
 	libp2ptcp "github.com/libp2p/go-libp2p/p2p/transport/tcp"
@@ -94,7 +94,8 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) ([]libp2p.Op
 		// libp2p.ConnectionGater(s),
 		libp2p.Transport(libp2ptcp.NewTCPTransport),
 		libp2p.DefaultMuxers,
-		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
+		// libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
+		libp2p.Muxer(yamux.ID, yamux.DefaultTransport),
 		libp2p.Security(noise.ID, noise.New),
 		libp2p.Ping(false), // Disable Ping Service.
 	}
