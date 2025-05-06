@@ -10,8 +10,8 @@ import (
 	ecdsaprysm "github.com/OffchainLabs/prysm/v6/crypto/ecdsa"
 	"github.com/OffchainLabs/prysm/v6/runtime/version"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	libp2pquic "github.com/libp2p/go-libp2p/p2p/transport/quic"
@@ -139,9 +139,27 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) ([]libp2p.Op
 		}))
 	}
 
-	if features.Get().DisableResourceManager {
-		options = append(options, libp2p.ResourceManager(&network.NullResourceManager{}))
+	// if features.Get().DisableResourceManager {
+	// 	options = append(options, libp2p.ResourceManager(&network.NullResourceManager{}))
+	// } else {
+	// 创建具有更大限制的资源管理器配置
+	// 基于默认限制创建自定义配置
+	limitsConfig := rcmgr.DefaultLimits
+
+	// 增加系统级别的流限制
+	limitsConfig.SystemBaseLimit.Streams = 2000
+	limitsConfig.SystemBaseLimit.StreamsOutbound = 1000
+	limitsConfig.SystemBaseLimit.ConnsOutbound = 500
+
+	// 创建固定限制器
+	limiter := rcmgr.NewFixedLimiter(limitsConfig.AutoScale())
+
+	rm, err := rcmgr.NewResourceManager(limiter)
+	if err != nil {
+		return nil, err
 	}
+	options = append(options, libp2p.ResourceManager(rm))
+	// }
 
 	return options, nil
 }
