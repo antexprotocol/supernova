@@ -121,11 +121,11 @@ func (p *TestP2P) ReceiveRPC(topic string, msg proto.Message) {
 		p.t.Fatalf("Failed to open stream %v", err)
 	}
 
-	// 修改defer函数确保在CloseWrite后不重复关闭
+	// Modify defer function to ensure no duplicated close after CloseWrite
 	closeWriteDone := false
 	defer func() {
 		if !closeWriteDone {
-			// 如果没有成功调用CloseWrite，则尝试关闭整个流
+			// If CloseWrite was not successfully called, try to close the entire stream
 			if err := s.Close(); err != nil {
 				p.t.Log(err)
 			}
@@ -362,10 +362,10 @@ func (p *TestP2P) Send(ctx context.Context, msg interface{}, topic string, pid p
 		return nil, err
 	}
 
-	// 如果在后续处理出错，确保重置流以避免泄漏
+	// Reset stream on error to prevent resource leaks
 	resetOnError := func(err error) error {
 		if err != nil {
-			// 尝试重置流，忽略重置流可能产生的错误
+			// Try to reset the stream, ignore any reset errors
 			if resetErr := stream.Reset(); resetErr != nil {
 				p.t.Logf("Failed to reset stream: %v", resetErr)
 			}

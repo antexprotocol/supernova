@@ -43,10 +43,10 @@ func (s *Service) Send(ctx context.Context, message interface{}, baseTopic strin
 		return nil, err
 	}
 
-	// 确保在函数执行失败时重置流，避免泄漏
+	// Ensure stream is reset in case of error to prevent resource leak
 	resetOnError := func(err error) error {
 		if err != nil {
-			// 记录错误，但不返回Reset的错误，原始错误更重要
+			// Log the error but don't return Reset error - the original error is more important
 			if resetErr := stream.Reset(); resetErr != nil {
 				s.logger.Debug("Failed to reset stream", "err", resetErr)
 			}

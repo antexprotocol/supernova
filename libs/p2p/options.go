@@ -139,19 +139,16 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) ([]libp2p.Op
 		}))
 	}
 
-	// if features.Get().DisableResourceManager {
-	// 	options = append(options, libp2p.ResourceManager(&network.NullResourceManager{}))
-	// } else {
-	// 创建具有更大限制的资源管理器配置
-	// 基于默认限制创建自定义配置
+	// Create resource manager with increased limits
+	// Create custom config based on default limits
 	limitsConfig := rcmgr.DefaultLimits
 
-	// 增加系统级别的流限制
+	// Increase system-level stream limits
 	limitsConfig.SystemBaseLimit.Streams = 2000
 	limitsConfig.SystemBaseLimit.StreamsOutbound = 1000
 	limitsConfig.SystemBaseLimit.ConnsOutbound = 500
 
-	// 创建固定限制器
+	// Create fixed limiter
 	limiter := rcmgr.NewFixedLimiter(limitsConfig.AutoScale())
 
 	rm, err := rcmgr.NewResourceManager(limiter)
@@ -159,7 +156,6 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) ([]libp2p.Op
 		return nil, err
 	}
 	options = append(options, libp2p.ResourceManager(rm))
-	// }
 
 	return options, nil
 }
