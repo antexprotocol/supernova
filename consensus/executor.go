@@ -142,12 +142,12 @@ func (e *Executor) applyBlock(blk *block.Block, syncingToHeight int64) (appHash 
 	}
 	proposerAddr, _ := vset.GetByIndex(int32(blk.ProposerIndex()))
 
-	e.logger.Info("applying block", "block_number", blk.Number(),
-		"block_validators_hash", blk.ValidatorsHash(),
-		"block_val_set", vset.String(),
-		"block_proposer", hex.EncodeToString(proposerAddr),
-		"block_hash", blk.ID().String(),
-	)
+	// e.logger.Info("applying block", "block_number", blk.Number(),
+	// 	"block_validators_hash", blk.ValidatorsHash(),
+	// 	"block_val_set", vset.String(),
+	// 	"block_proposer", hex.EncodeToString(proposerAddr),
+	// 	"block_hash", blk.ID().String(),
+	// )
 
 	abciResponse, err := e.proxyApp.FinalizeBlock(context.TODO(), &abci.FinalizeBlockRequest{
 		Hash:               blk.ID().Bytes(),

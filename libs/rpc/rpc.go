@@ -146,14 +146,17 @@ func (s *RPCServer) handleRPC(stream network.Stream) {
 				BestBlockNum:   best.Number(),
 			}, true)
 	case NEW_BLOCK:
-		escortedBlk := &block.EscortedBlock{}
-		err = rlp.DecodeBytes(env.Raw, escortedBlk)
+		newBlock := &block.Block{}
+		err = rlp.DecodeBytes(env.Raw, newBlock)
 		if err != nil {
 			break
 		}
 
 		s.newBlockFeed.Send(&NewBlockEvent{
-			EscortedBlock: escortedBlk,
+			EscortedBlock: &block.EscortedBlock{
+				Block:    newBlock,
+				EscortQC: s.chain.BestQC(),
+			},
 		})
 
 	case NEW_BLOCK_ID:
