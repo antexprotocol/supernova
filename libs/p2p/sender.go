@@ -42,32 +42,35 @@ func (s *Service) Send(ctx context.Context, message interface{}, baseTopic strin
 		tracing.AnnotateError(span, err)
 		return nil, err
 	}
-	// // do not encode anything if we are sending a metadata request
-	// if baseTopic != RPCMetaDataTopicV1 && baseTopic != RPCMetaDataTopicV2 {
-	// 	castedMsg, ok := message.(ssz.Marshaler)
-	// 	if !ok {
-	// 		return nil, errors.Errorf("%T does not support the ssz marshaller interface", message)
-	// 	}
-	// 	if _, err := s.Encoding().EncodeWithMaxLength(stream, castedMsg); err != nil {
-	// 		tracing.AnnotateError(span, err)
-	// 		_err := stream.Reset()
-	// 		_ = _err
-	// 		return nil, err
-	// 	}
-	// }
+
+	// 确保在函数执行失败时重置流，避免泄漏
+	resetOnError := func(err error) error {
+		if err != nil {
+			// 记录错误，但不返回Reset的错误，原始错误更重要
+			if resetErr := stream.Reset(); resetErr != nil {
+				s.logger.Debug("Failed to reset stream", "err", resetErr)
+			}
+			return err
+		}
+		return nil
+	}
+
 	bs, err := message.(*snmsg.RPCEnvelope).MarshalSSZ()
 	if err != nil {
-		fmt.Println("marshal error:", err)
+		s.logger.Debug("Failed to marshal message", "err", err)
+		return nil, resetOnError(err)
 	}
 
 	_, err = stream.Write(bs)
+	if err != nil {
+		s.logger.Debug("Failed to write to stream", "err", err)
+		return nil, resetOnError(err)
+	}
 
 	// Close stream for writing.
 	if err := stream.CloseWrite(); err != nil {
 		tracing.AnnotateError(span, err)
-		_err := stream.Reset()
-		_ = _err
-		return nil, err
+		return nil, resetOnError(err)
 	}
 
 	return stream, nil

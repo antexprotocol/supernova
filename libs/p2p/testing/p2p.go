@@ -120,9 +120,15 @@ func (p *TestP2P) ReceiveRPC(topic string, msg proto.Message) {
 	if err != nil {
 		p.t.Fatalf("Failed to open stream %v", err)
 	}
+
+	// 修改defer函数确保在CloseWrite后不重复关闭
+	closeWriteDone := false
 	defer func() {
-		if err := s.Close(); err != nil {
-			p.t.Log(err)
+		if !closeWriteDone {
+			// 如果没有成功调用CloseWrite，则尝试关闭整个流
+			if err := s.Close(); err != nil {
+				p.t.Log(err)
+			}
 		}
 	}()
 
@@ -132,10 +138,19 @@ func (p *TestP2P) ReceiveRPC(topic string, msg proto.Message) {
 	}
 	n, err := p.Encoding().EncodeWithMaxLength(s, castedMsg)
 	if err != nil {
-		_err := s.Reset()
-		_ = _err
+		if resetErr := s.Reset(); resetErr != nil {
+			p.t.Logf("Failed to reset stream after encoding error: %v", resetErr)
+		}
 		p.t.Fatalf("Failed to encode message: %v", err)
 	}
+
+	if err := s.CloseWrite(); err != nil {
+		if resetErr := s.Reset(); resetErr != nil {
+			p.t.Logf("Failed to reset stream after CloseWrite error: %v", resetErr)
+		}
+		p.t.Fatalf("Failed to close write: %v", err)
+	}
+	closeWriteDone = true
 
 	p.t.Logf("Wrote %d bytes", n)
 }
@@ -347,24 +362,33 @@ func (p *TestP2P) Send(ctx context.Context, msg interface{}, topic string, pid p
 		return nil, err
 	}
 
+	// 如果在后续处理出错，确保重置流以避免泄漏
+	resetOnError := func(err error) error {
+		if err != nil {
+			// 尝试重置流，忽略重置流可能产生的错误
+			if resetErr := stream.Reset(); resetErr != nil {
+				p.t.Logf("Failed to reset stream: %v", resetErr)
+			}
+			return err
+		}
+		return nil
+	}
+
 	if !metadataTopics[topic] {
 		castedMsg, ok := msg.(ssz.Marshaler)
 		if !ok {
-			p.t.Fatalf("%T doesn't support ssz marshaler", msg)
+			return nil, resetOnError(fmt.Errorf("%T doesn't support ssz marshaler", msg))
 		}
 		if _, err := p.Encoding().EncodeWithMaxLength(stream, castedMsg); err != nil {
-			_err := stream.Reset()
-			_ = _err
-			return nil, err
+			return nil, resetOnError(err)
 		}
 	}
 
 	// Close stream for writing.
 	if err := stream.CloseWrite(); err != nil {
-		_err := stream.Reset()
-		_ = _err
-		return nil, err
+		return nil, resetOnError(err)
 	}
+
 	// Delay returning the stream for testing purposes
 	if p.DelaySend {
 		time.Sleep(1 * time.Second)
