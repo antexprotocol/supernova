@@ -168,7 +168,7 @@ func (s *RPCServer) handleRPC(stream network.Stream) {
 
 	case NEW_TX:
 		newTx := env.Raw
-		s.txPool.StrictlyAdd(newTx)
+		err = s.txPool.StrictlyAdd(newTx)
 
 	case GET_BLOCK_BY_ID:
 		blockID := types.BytesToBytes32(env.Raw[:32])
