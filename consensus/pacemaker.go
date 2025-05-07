@@ -27,7 +27,7 @@ import (
 
 const (
 	RoundInterval        = 200 * time.Millisecond
-	RoundTimeoutInterval = RoundInterval * 4 // round timeout 800 ms.
+	RoundTimeoutInterval = RoundInterval * 10 // round timeout 2000 ms.
 	ProposeTimeLimit     = 1300 * time.Millisecond
 	BroadcastTimeLimit   = 1400 * time.Millisecond
 )
