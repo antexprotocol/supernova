@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	RoundInterval        = 500 * time.Millisecond
-	RoundTimeoutInterval = RoundInterval * 10 // round timeout 2000 ms.
+	RoundInterval        = 200 * time.Millisecond
+	RoundTimeoutInterval = RoundInterval * 5 // round timeout 1000 ms.
 	ProposeTimeLimit     = 1300 * time.Millisecond
 	BroadcastTimeLimit   = 1400 * time.Millisecond
 )
@@ -802,5 +802,6 @@ func (p *Pacemaker) resetRoundTimer(round uint32, rtype roundType) time.Duration
 		})
 		return timeoutInterval
 	}
-	return time.Second
+	// return time.Second
+	return RoundInterval
 }
