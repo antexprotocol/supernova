@@ -11,6 +11,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"net"
+	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,9 +25,12 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
+	rpccore "github.com/cometbft/cometbft/rpc/core"
+	rpcserver "github.com/cometbft/cometbft/rpc/jsonrpc/server"
 	cmttypes "github.com/cometbft/cometbft/types"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/rs/cors"
 
 	"github.com/antexprotocol/supernova/api"
 	"github.com/antexprotocol/supernova/block"
@@ -104,6 +109,9 @@ type Node struct {
 	p2pSrv p2p.P2P
 
 	proxyApp cmtproxy.AppConns
+
+	isCometBftListening  bool
+	cometBftRpcListeners []net.Listener
 }
 
 func NewNode(
@@ -348,6 +356,16 @@ func (n *Node) Start() error {
 	n.rpc.Start(n.ctx)
 	n.rpc.Sync(n.handleBlockStream)
 
+	// Start the cometbft RPC server before the P2P server
+	if n.config.RPC.ListenAddress != "" {
+		n.logger.Info("Starting cometbft RPC server", "address", n.config.RPC.ListenAddress)
+		listeners, err := n.startCometBFTRPC()
+		if err != nil {
+			return err
+		}
+		n.cometBftRpcListeners = listeners
+	}
+
 	n.goes.Go(func() { n.apiServer.Start(n.ctx) })
 	n.goes.Go(func() { n.houseKeeping(n.ctx) })
 	// n.goes.Go(func() { n.txStashLoop(n.ctx) })
@@ -359,6 +377,17 @@ func (n *Node) Start() error {
 
 func (n *Node) Stop() error {
 	n.rpc.Stop()
+
+	n.isCometBftListening = false
+
+	// finally stop the listeners / external services
+	for _, l := range n.cometBftRpcListeners {
+		n.logger.Info("Closing cometbft rpc listener", "listener", l)
+		if err := l.Close(); err != nil {
+			n.logger.Error("Error closing cometbft listener", "listener", l, "err", err)
+		}
+	}
+
 	return nil
 }
 
@@ -619,4 +648,155 @@ func checkClockOffset() {
 func (n *Node) IsRunning() bool {
 	// FIXME: set correct value
 	return true
+}
+
+// ConfigureRPC makes sure RPC has all the objects it needs to operate.
+func (n *Node) ConfigureRPC() (*rpccore.Environment, error) {
+	pubKey, err := n.privValidator.GetPubKey()
+	if pubKey == nil || err != nil {
+		return nil, fmt.Errorf("can't get pubkey: %w", err)
+	}
+	rpcCoreEnv := rpccore.Environment{
+		ProxyAppQuery:   n.proxyApp.Query(),
+		ProxyAppMempool: n.proxyApp.Mempool(),
+
+		// StateStore:     n.stateStore,
+		// BlockStore:     n.blockStore,
+		// EvidencePool:   n.evidencePool,
+		// ConsensusState: n.consensusState,
+		// P2PPeers:       n.sw,
+		// P2PTransport:   n,
+		PubKey: pubKey,
+
+		GenDoc: n.genesisDoc,
+		// TxIndexer:        n.txIndexer,
+		// BlockIndexer:     n.blockIndexer,
+		// ConsensusReactor: n.consensusReactor,
+		// MempoolReactor:   n.mempoolReactor,
+		// EventBus:         n.eventBus,
+		// Mempool:          n.mempool,
+
+		Logger: log.NewNopLogger().With("module", "rpc"),
+
+		Config: *n.config.RPC,
+	}
+	if err := rpcCoreEnv.InitGenesisChunks(); err != nil {
+		return nil, err
+	}
+	return &rpcCoreEnv, nil
+}
+
+func (n *Node) startCometBFTRPC() ([]net.Listener, error) {
+	env, err := n.ConfigureRPC()
+	if err != nil {
+		return nil, err
+	}
+
+	listenAddrs := splitAndTrimEmpty(n.config.RPC.ListenAddress, ",", " ")
+	routes := env.GetRoutes()
+
+	if n.config.RPC.Unsafe {
+		env.AddUnsafeRoutes(routes)
+	}
+
+	config := rpcserver.DefaultConfig()
+	config.MaxRequestBatchSize = n.config.RPC.MaxRequestBatchSize
+	config.MaxBodyBytes = n.config.RPC.MaxBodyBytes
+	config.MaxHeaderBytes = n.config.RPC.MaxHeaderBytes
+	config.MaxOpenConnections = n.config.RPC.MaxOpenConnections
+	// If necessary adjust global WriteTimeout to ensure it's greater than
+	// TimeoutBroadcastTxCommit.
+	// See https://github.com/tendermint/tendermint/issues/3435
+	if config.WriteTimeout <= n.config.RPC.TimeoutBroadcastTxCommit {
+		config.WriteTimeout = n.config.RPC.TimeoutBroadcastTxCommit + 1*time.Second
+	}
+
+	// we may expose the rpc over both a unix and tcp socket
+	listeners := make([]net.Listener, 0, len(listenAddrs))
+	for _, listenAddr := range listenAddrs {
+		mux := http.NewServeMux()
+		rpcLogger := log.NewNopLogger().With("module", "rpc-server")
+		wmLogger := rpcLogger.With("protocol", "websocket")
+		wm := rpcserver.NewWebsocketManager(routes,
+			rpcserver.OnDisconnect(func(remoteAddr string) {
+				// err := n.eventBus.UnsubscribeAll(context.Background(), remoteAddr)
+				// if err != nil && err != cmtpubsub.ErrSubscriptionNotFound {
+				// 	wmLogger.Error("Failed to unsubscribe addr from events", "addr", remoteAddr, "err", err)
+				// }
+			}),
+			rpcserver.ReadLimit(config.MaxBodyBytes),
+			rpcserver.WriteChanCapacity(n.config.RPC.WebSocketWriteBufferSize),
+		)
+		wm.SetLogger(wmLogger)
+		mux.HandleFunc("/websocket", wm.WebsocketHandler)
+		mux.HandleFunc("/v1/websocket", wm.WebsocketHandler)
+		rpcserver.RegisterRPCFuncs(mux, routes, rpcLogger)
+		listener, err := rpcserver.Listen(
+			listenAddr,
+			config.MaxOpenConnections,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		var rootHandler http.Handler = mux
+		if n.config.RPC.IsCorsEnabled() {
+			corsMiddleware := cors.New(cors.Options{
+				AllowedOrigins: n.config.RPC.CORSAllowedOrigins,
+				AllowedMethods: n.config.RPC.CORSAllowedMethods,
+				AllowedHeaders: n.config.RPC.CORSAllowedHeaders,
+			})
+			rootHandler = corsMiddleware.Handler(mux)
+		}
+		if n.config.RPC.IsTLSEnabled() {
+			go func() {
+				if err := rpcserver.ServeTLS(
+					listener,
+					rootHandler,
+					n.config.RPC.CertFile(),
+					n.config.RPC.KeyFile(),
+					rpcLogger,
+					config,
+				); err != nil {
+					n.logger.Error("Error serving server with TLS", "err", err)
+				}
+			}()
+		} else {
+			go func() {
+				if err := rpcserver.Serve(
+					listener,
+					rootHandler,
+					rpcLogger,
+					config,
+				); err != nil {
+					n.logger.Error("Error serving server", "err", err)
+				}
+			}()
+		}
+
+		listeners = append(listeners, listener)
+	}
+
+	return listeners, nil
+}
+
+// splitAndTrimEmpty slices s into all subslices separated by sep and returns a
+// slice of the string s with all leading and trailing Unicode code points
+// contained in cutset removed. If sep is empty, SplitAndTrim splits after each
+// UTF-8 sequence. First part is equivalent to strings.SplitN with a count of
+// -1.  also filter out empty strings, only return non-empty strings.
+func splitAndTrimEmpty(s, sep, cutset string) []string {
+	if s == "" {
+		return []string{}
+	}
+
+	spl := strings.Split(s, sep)
+	nonEmptyStrings := make([]string, 0, len(spl))
+	for i := 0; i < len(spl); i++ {
+		element := strings.Trim(spl[i], cutset)
+		if element != "" {
+			nonEmptyStrings = append(nonEmptyStrings, element)
+		}
+	}
+	return nonEmptyStrings
 }
