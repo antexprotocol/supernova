@@ -24,9 +24,9 @@ func (txs Transactions) RootHash() cmtbytes.HexBytes {
 }
 
 func (txs Transactions) Convert() [][]byte {
-	txbytes := make([][]byte, 0)
-	for _, tx := range txs {
-		txbytes = append(txbytes, tx)
+	txbytes := make([][]byte, len(txs))
+	for i := 0; i < len(txs); i++ {
+		txbytes[i] = txs[i]
 	}
 	return txbytes
 }

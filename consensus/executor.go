@@ -12,6 +12,7 @@ import (
 	"github.com/antexprotocol/supernova/block"
 	"github.com/antexprotocol/supernova/chain"
 	cmn "github.com/antexprotocol/supernova/libs/common"
+	"github.com/antexprotocol/supernova/txpool"
 	abci "github.com/cometbft/cometbft/abci/types"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
@@ -30,6 +31,7 @@ type Executor struct {
 	chain    *chain.Chain
 	logger   *slog.Logger
 	eventBus cmttypes.BlockEventPublisher
+	txPool   *txpool.TxPool
 }
 
 func NewExecutor(proxyApp cmtproxy.AppConnConsensus, c *chain.Chain) *Executor {
@@ -54,6 +56,7 @@ func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) 
 		Misbehavior:        make([]v1.Misbehavior, 0), // FIXME: track the misbehavior and preppare the evidence
 		NextValidatorsHash: parent.ProposedBlock.NextValidatorsHash(),
 		ProposerAddress:    proposerAddr,
+		Txs:                e.txPool.Executables().Convert(),
 	})
 }
 
@@ -259,4 +262,9 @@ func CalcAddedValidators(curVSet, nxtVSet *cmttypes.ValidatorSet) (added []*cmtt
 // If not called, it defaults to types.NopEventBus.
 func (e *Executor) SetEventBus(eventBus cmttypes.BlockEventPublisher) {
 	e.eventBus = eventBus
+}
+
+// SetTxPool - sets the tx pool for the executor.
+func (e *Executor) SetTxPool(txPool *txpool.TxPool) {
+	e.txPool = txPool
 }

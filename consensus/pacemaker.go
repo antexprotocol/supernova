@@ -108,6 +108,7 @@ func NewPacemaker(ctx context.Context, version string, c *chain.Chain, txpool *t
 		lastOnBeatRound:      -1,
 		validatorSetRegistry: NewValidatorSetRegistry(c),
 	}
+	p.executor.SetTxPool(txpool)
 
 	return p
 }
