@@ -1,6 +1,8 @@
 package node
 
 import (
+	"fmt"
+
 	abci "github.com/cometbft/cometbft/abci/types"
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
@@ -13,6 +15,8 @@ func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.Resu
 	if err != nil {
 		return nil, err
 	}
+	n.logger.Info("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
+	fmt.Println("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
 
 	pid, err := peer.IDFromBytes(n.nodeKey.PrivKey.Bytes())
 	if err != nil {
