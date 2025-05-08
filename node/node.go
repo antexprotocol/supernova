@@ -805,3 +805,7 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 	}
 	return nonEmptyStrings
 }
+
+func (n *Node) GetTxPool() *txpool.TxPool {
+	return n.txPool
+}
