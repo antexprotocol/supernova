@@ -22,10 +22,12 @@ func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.Resu
 
 	pid, err := peer.IDFromBytes(n.nodeKey.PrivKey.Bytes())
 	if err != nil {
+		n.logger.Error("BroadcastTxSync IDFromBytes", "error", err)
 		return nil, err
 	}
 	err = n.rpc.NotifyNewTx(pid, tx)
 	if err != nil {
+		n.logger.Error("BroadcastTxSync NotifyNewTx", "error", err)
 		return nil, err
 	}
 	n.logger.Info("BroadcastTxSync", "hash", hex.EncodeToString(tx.Hash()))
