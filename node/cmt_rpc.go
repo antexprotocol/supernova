@@ -1,9 +1,6 @@
 package node
 
 import (
-	"fmt"
-
-	abci "github.com/cometbft/cometbft/abci/types"
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
 	"github.com/cometbft/cometbft/types"
@@ -11,12 +8,15 @@ import (
 )
 
 func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadcastTx, error) {
-	res, err := n.proxyApp.Mempool().CheckTx(ctx.Context(), &abci.CheckTxRequest{Tx: tx})
-	if err != nil {
-		return nil, err
-	}
-	n.logger.Info("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
-	fmt.Println("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
+	// res, err := n.proxyApp.Mempool().CheckTx(ctx.Context(), &abci.CheckTxRequest{
+	// 	Tx:   tx,
+	// 	Type: v1.CHECK_TX_TYPE_CHECK,
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// n.logger.Info("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
+	// fmt.Println("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
 
 	pid, err := peer.IDFromBytes(n.nodeKey.PrivKey.Bytes())
 	if err != nil {
@@ -28,11 +28,11 @@ func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.Resu
 	}
 
 	return &ctypes.ResultBroadcastTx{
-		Code:      res.Code,
-		Data:      res.Data,
-		Log:       res.Log,
-		Codespace: res.Codespace,
-		Hash:      tx.Hash(),
+		Code: 0,
+		// Data:      res.Data,
+		// Log:       res.Log,
+		// Codespace: res.Codespace,
+		Hash: tx.Hash(),
 	}, nil
 }
 
