@@ -1,6 +1,8 @@
 package node
 
 import (
+	"encoding/hex"
+
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
 	"github.com/cometbft/cometbft/types"
@@ -26,13 +28,14 @@ func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.Resu
 	if err != nil {
 		return nil, err
 	}
+	n.logger.Info("BroadcastTxSync", "hash", hex.EncodeToString(tx.Hash()))
 
 	return &ctypes.ResultBroadcastTx{
 		Code: 0,
 		// Data:      res.Data,
 		// Log:       res.Log,
 		// Codespace: res.Codespace,
-		Hash: tx.Hash(),
+		// Hash: tx.Hash(),
 	}, nil
 }
 
