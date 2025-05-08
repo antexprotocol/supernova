@@ -672,7 +672,7 @@ func (n *Node) ConfigureRPC() (*rpccore.Environment, error) {
 		// TxIndexer:        n.txIndexer,
 		// BlockIndexer:     n.blockIndexer,
 		// ConsensusReactor: n.consensusReactor,
-		// MempoolReactor:   n.mempoolReactor,
+		// MempoolReactor: &mempoolReactor{},
 		// EventBus:         n.eventBus,
 		// Mempool:          n.mempool,
 
@@ -694,6 +694,11 @@ func (n *Node) startCometBFTRPC() ([]net.Listener, error) {
 
 	listenAddrs := splitAndTrimEmpty(n.config.RPC.ListenAddress, ",", " ")
 	routes := env.GetRoutes()
+
+	// reactor broadcast_tx_sync/broadcast_tx_async
+	routes["broadcast_tx_sync"] = rpcserver.NewRPCFunc(n.BroadcastTxSync, "tx")
+	routes["broadcast_tx_async"] = rpcserver.NewRPCFunc(n.BroadcastTxAsync, "tx")
+	routes["tx"] = rpcserver.NewRPCFunc(n.Tx, "hash,prove", rpcserver.Cacheable())
 
 	if n.config.RPC.Unsafe {
 		env.AddUnsafeRoutes(routes)

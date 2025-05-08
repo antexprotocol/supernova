@@ -1,0 +1,70 @@
+package node
+
+import (
+	abci "github.com/cometbft/cometbft/abci/types"
+	ctypes "github.com/cometbft/cometbft/rpc/core/types"
+	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
+	"github.com/cometbft/cometbft/types"
+	"github.com/libp2p/go-libp2p/core/peer"
+)
+
+func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadcastTx, error) {
+	res, err := n.proxyApp.Mempool().CheckTx(ctx.Context(), &abci.CheckTxRequest{Tx: tx})
+	if err != nil {
+		return nil, err
+	}
+
+	pid, err := peer.IDFromBytes(n.nodeKey.PrivKey.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	err = n.rpc.NotifyNewTx(pid, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ctypes.ResultBroadcastTx{
+		Code:      res.Code,
+		Data:      res.Data,
+		Log:       res.Log,
+		Codespace: res.Codespace,
+		Hash:      tx.Hash(),
+	}, nil
+}
+
+func (n *Node) BroadcastTxAsync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadcastTx, error) {
+	return n.BroadcastTxSync(ctx, tx)
+}
+
+func (n *Node) Tx(ctx *rpctypes.Context, hash []byte, prove bool) (*ctypes.ResultTx, error) {
+	// if _, ok := env.TxIndexer.(*null.TxIndex); ok {
+	// 	return nil, errors.New("transaction indexing is disabled")
+	// }
+
+	// r, err := n.rpc.Get(hash)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// if r == nil {
+	// 	return nil, fmt.Errorf("tx (%X) not found", hash)
+	// }
+
+	// var proof types.TxProof
+	// if prove {
+	// 	block, _ := env.BlockStore.LoadBlock(r.Height)
+	// 	if block != nil {
+	// 		proof = block.Data.Txs.Proof(int(r.Index))
+	// 	}
+	// }
+
+	// return &ctypes.ResultTx{
+	// 	Hash:     hash,
+	// 	Height:   r.Height,
+	// 	Index:    r.Index,
+	// 	TxResult: r.Result,
+	// 	Tx:       r.Tx,
+	// 	Proof:    proof,
+	// }, nil
+	return nil, nil
+}
