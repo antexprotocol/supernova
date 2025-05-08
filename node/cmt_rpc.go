@@ -6,7 +6,6 @@ import (
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
 	"github.com/cometbft/cometbft/types"
-	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadcastTx, error) {
@@ -20,12 +19,14 @@ func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.Resu
 	// n.logger.Info("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
 	// fmt.Println("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
 
-	pid, err := peer.IDFromBytes(n.nodeKey.PrivKey.Bytes())
-	if err != nil {
-		n.logger.Error("BroadcastTxSync IDFromBytes", "error", err)
-		return nil, err
-	}
-	err = n.rpc.NotifyNewTx(pid, tx)
+	// pid, err := peer.IDFromBytes(n.nodeKey.PrivKey.Bytes())
+	// if err != nil {
+	// 	n.logger.Error("BroadcastTxSync IDFromBytes", "error", err)
+	// 	return nil, err
+	// }
+
+	// err = n.rpc.NotifyNewTx(pid, tx)
+	err := n.txPool.StrictlyAdd(tx)
 	if err != nil {
 		n.logger.Error("BroadcastTxSync NotifyNewTx", "error", err)
 		return nil, err
@@ -37,7 +38,7 @@ func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.Resu
 		// Data:      res.Data,
 		// Log:       res.Log,
 		// Codespace: res.Codespace,
-		// Hash: tx.Hash(),
+		Hash: tx.Hash(),
 	}, nil
 }
 
