@@ -44,6 +44,8 @@ func (e *Executor) InitChain(req *abcitypes.InitChainRequest) (*abcitypes.InitCh
 
 func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) (*abcitypes.PrepareProposalResponse, error) {
 	maxBytes := int64(cmttypes.MaxBlockSizeBytes)
+	txs := e.txPool.Executables().Convert()
+	e.logger.Info("prepare proposal", "height", proposerIndex, "txs", len(txs))
 
 	evSize := int64(0)
 	vset := e.chain.GetValidatorsByHash(parent.ProposedBlock.NextValidatorsHash())
@@ -56,7 +58,7 @@ func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) 
 		Misbehavior:        make([]v1.Misbehavior, 0), // FIXME: track the misbehavior and preppare the evidence
 		NextValidatorsHash: parent.ProposedBlock.NextValidatorsHash(),
 		ProposerAddress:    proposerAddr,
-		Txs:                e.txPool.Dump().Convert(),
+		Txs:                txs,
 	})
 }
 
