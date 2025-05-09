@@ -132,6 +132,7 @@ func (p *Pacemaker) CreateLeaf(parent *block.DraftBlock, justify *block.DraftQC,
 	if err != nil {
 		return err, nil
 	}
+	p.logger.Info("CreateLeaf PrepareProposal", "res tx count", len(res.Txs))
 
 	var txs types.Transactions
 	for _, txBytes := range res.Txs {
