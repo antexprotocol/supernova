@@ -82,6 +82,8 @@ type Pacemaker struct {
 	txsAddedAfterPropose int
 
 	validatorSetRegistry *ValidatorSetRegistry
+
+	mainLoopStarted bool
 }
 
 func NewPacemaker(ctx context.Context, version string, c *chain.Chain, txpool *txpool.TxPool, p2pSrv p2p.P2P, blsMaster *types.BlsMaster, proxyApp cmtproxy.AppConns) *Pacemaker {
@@ -108,6 +110,7 @@ func NewPacemaker(ctx context.Context, version string, c *chain.Chain, txpool *t
 		lastOnBeatRound:      -1,
 		validatorSetRegistry: NewValidatorSetRegistry(c),
 	}
+	p.executor.SetTxPool(txpool)
 
 	return p
 }
@@ -656,6 +659,7 @@ CleanCMDCh:
 
 func (p *Pacemaker) mainLoop() {
 	interruptCh := make(chan os.Signal, 1)
+	p.mainLoopStarted = true
 	// signal.Notify(interruptCh, syscall.SIGINT, syscall.SIGTERM)
 
 	for {
@@ -715,6 +719,7 @@ func (p *Pacemaker) mainLoop() {
 
 		case <-interruptCh:
 			p.logger.Warn("interrupt by user, exit now")
+			p.mainLoopStarted = false
 			return
 
 		}

@@ -166,7 +166,6 @@ func NewNode(
 	}
 
 	txPool := txpool.New(chain, txpool.DefaultTxPoolOptions)
-	defer func() { slog.Info("closing tx pool..."); txPool.Close() }()
 
 	bootstrapNodes := strings.Split(config.P2P.PersistentPeers, ",")
 	slog.Info("parsed bootstrap nodes:", "bootstrapNodes", bootstrapNodes)
@@ -379,6 +378,9 @@ func (n *Node) Stop() error {
 	n.rpc.Stop()
 
 	n.isCometBftListening = false
+
+	slog.Info("closing tx pool...")
+	n.txPool.Close()
 
 	// finally stop the listeners / external services
 	for _, l := range n.cometBftRpcListeners {
