@@ -82,7 +82,8 @@ func (p *TxPool) housekeeping() {
 	p.logger.Debug("enter housekeeping")
 	defer p.logger.Debug("leave housekeeping")
 
-	washInterval := time.Second
+	// washInterval := time.Second
+	washInterval := 100 * time.Millisecond
 	ticker := time.NewTicker(washInterval)
 	defer ticker.Stop()
 
