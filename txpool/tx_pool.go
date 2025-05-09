@@ -101,6 +101,7 @@ func (p *TxPool) housekeeping() {
 			}
 			if !isChainSynced(uint64(time.Now().Unix()), headBlock.Timestamp) {
 				// skip washing txs if not synced
+				p.logger.Debug("chain not synced, skip washing txs")
 				continue
 			}
 			poolLen := p.all.Len()
