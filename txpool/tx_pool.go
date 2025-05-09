@@ -79,8 +79,8 @@ func New(chain *chain.Chain, options Options) *TxPool {
 }
 
 func (p *TxPool) housekeeping() {
-	p.logger.Debug("enter housekeeping")
-	defer p.logger.Debug("leave housekeeping")
+	p.logger.Debug("enter txpool housekeeping")
+	defer p.logger.Debug("leave txpool housekeeping")
 
 	// washInterval := time.Second
 	washInterval := 100 * time.Millisecond
@@ -93,6 +93,7 @@ func (p *TxPool) housekeeping() {
 	for {
 		select {
 		case <-p.done:
+			p.logger.Debug("txpool housekeeping done")
 			return
 		case <-ticker.C:
 			var headBlockChanged bool
