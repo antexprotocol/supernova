@@ -100,11 +100,12 @@ func (p *TxPool) housekeeping() {
 				headBlockChanged = true
 			}
 
-			p.logger.Info("txpool housekeeping", "now", time.Now().Unix(), "headBlockTimestamp", headBlock.Timestamp)
-			if headBlock.Number() <= 1 || !isChainSynced(uint64(time.Now().Unix()), headBlock.Timestamp) {
-				// skip washing txs if not synced
-				continue
-			}
+			// p.logger.Info("txpool housekeeping", "now", time.Now().Unix(), "headBlockTimestamp", headBlock.Timestamp)
+			// if headBlock.Number() <= 1 || !isChainSynced(uint64(time.Now().Unix()), headBlock.Timestamp) {
+			// 	// skip washing txs if not synced
+			// 	continue
+			// }
+
 			poolLen := p.all.Len()
 			p.logger.Debug("wash start", "poolLen", poolLen)
 			p.logger.Info("txpool wash start", "poolLen", poolLen)
@@ -383,7 +384,7 @@ func (p *TxPool) wash(headBlock *block.Header, timeLimit time.Duration) (executa
 		}
 	})
 	p.logger.Debug("in wash", "executables size", len(executables), "non-executables size", len(nonExecutableObjs))
-	return executables, 0, nil
+	return executables, removed, nil
 }
 
 func isChainSynced(nowTimestamp, blockTimestamp uint64) bool {
