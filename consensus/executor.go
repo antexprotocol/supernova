@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/antexprotocol/supernova/block"
@@ -32,6 +33,8 @@ type Executor struct {
 	logger   *slog.Logger
 	eventBus cmttypes.BlockEventPublisher
 	txPool   *txpool.TxPool
+	txCache  map[string]uint32
+	txMutex  sync.RWMutex
 }
 
 func NewExecutor(proxyApp cmtproxy.AppConnConsensus, c *chain.Chain) *Executor {
@@ -45,8 +48,16 @@ func (e *Executor) InitChain(req *abcitypes.InitChainRequest) (*abcitypes.InitCh
 func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) (*abcitypes.PrepareProposalResponse, error) {
 	maxBytes := int64(cmttypes.MaxBlockSizeBytes)
 
-	txs := e.txPool.Executables().Convert()
+	// FIXME: calc max size of txs and block gas limit
+	txs := e.txPool.Executables()
 	e.logger.Info("prepare proposal", "round", parent.Round+1, "proposer", proposerIndex, "txs", len(txs))
+
+	// cache txs
+	e.txMutex.Lock()
+	defer e.txMutex.Unlock()
+	for _, tx := range txs {
+		e.txCache[hex.EncodeToString(tx.Hash())] = parent.Height + 1
+	}
 
 	evSize := int64(0)
 	vset := e.chain.GetValidatorsByHash(parent.ProposedBlock.NextValidatorsHash())
@@ -59,7 +70,7 @@ func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) 
 		Misbehavior:        make([]v1.Misbehavior, 0), // FIXME: track the misbehavior and preppare the evidence
 		NextValidatorsHash: parent.ProposedBlock.NextValidatorsHash(),
 		ProposerAddress:    proposerAddr,
-		Txs:                txs,
+		Txs:                txs.Convert(),
 	})
 }
 
@@ -184,6 +195,21 @@ func (e *Executor) applyBlock(blk *block.Block, syncingToHeight int64) (appHash 
 	if len(blk.Txs) != len(abciResponse.TxResults) {
 		err = fmt.Errorf("expected tx results length to match size of transactions in block. Expected %d, got %d", len(blk.Txs), len(abciResponse.TxResults))
 		return
+	}
+
+	// remove cached txs
+	e.txMutex.Lock()
+	defer e.txMutex.Unlock()
+	for txHash, height := range e.txCache {
+		if height <= blk.Number() {
+			delete(e.txCache, txHash)
+		}
+	}
+
+	// remove txs from txpool
+	for _, tx := range blk.Txs {
+		delete(e.txCache, hex.EncodeToString(tx.Hash()))
+		e.txPool.Remove(tx.Hash())
 	}
 
 	// calculate the next committee
