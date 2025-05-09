@@ -14,6 +14,7 @@ import (
 	"github.com/antexprotocol/supernova/chain"
 	cmn "github.com/antexprotocol/supernova/libs/common"
 	"github.com/antexprotocol/supernova/txpool"
+	"github.com/antexprotocol/supernova/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
@@ -50,13 +51,17 @@ func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) 
 
 	// FIXME: calc max size of txs and block gas limit
 	txs := e.txPool.Executables()
+	filteredTxs := make(types.Transactions, 0)
 	e.logger.Info("prepare proposal", "round", parent.Round+1, "proposer", proposerIndex, "txs", len(txs))
 
 	// cache txs
 	e.txMutex.Lock()
 	defer e.txMutex.Unlock()
 	for _, tx := range txs {
-		e.txCache[hex.EncodeToString(tx.Hash())] = parent.Height + 1
+		if _, ok := e.txCache[hex.EncodeToString(tx.Hash())]; !ok {
+			filteredTxs = append(filteredTxs, tx)
+			e.txCache[hex.EncodeToString(tx.Hash())] = parent.Height + 1
+		}
 	}
 
 	evSize := int64(0)
@@ -70,7 +75,7 @@ func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) 
 		Misbehavior:        make([]v1.Misbehavior, 0), // FIXME: track the misbehavior and preppare the evidence
 		NextValidatorsHash: parent.ProposedBlock.NextValidatorsHash(),
 		ProposerAddress:    proposerAddr,
-		Txs:                txs.Convert(),
+		Txs:                filteredTxs.Convert(),
 	})
 }
 
