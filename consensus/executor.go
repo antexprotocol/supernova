@@ -38,7 +38,7 @@ type Executor struct {
 }
 
 func NewExecutor(proxyApp cmtproxy.AppConnConsensus, c *chain.Chain) *Executor {
-	return &Executor{proxyApp: proxyApp, chain: c, logger: slog.With("pkg", "exec")}
+	return &Executor{proxyApp: proxyApp, chain: c, logger: slog.With("pkg", "exec"), txCache: make(map[string]uint32)}
 }
 
 func (e *Executor) InitChain(req *abcitypes.InitChainRequest) (*abcitypes.InitChainResponse, error) {
