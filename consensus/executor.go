@@ -56,7 +56,7 @@ func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) 
 		Misbehavior:        make([]v1.Misbehavior, 0), // FIXME: track the misbehavior and preppare the evidence
 		NextValidatorsHash: parent.ProposedBlock.NextValidatorsHash(),
 		ProposerAddress:    proposerAddr,
-		Txs:                e.txPool.Dump().Convert(),
+		Txs:                e.txPool.Executables().Convert(),
 	})
 }
 
