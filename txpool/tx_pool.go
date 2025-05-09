@@ -79,10 +79,10 @@ func New(chain *chain.Chain, options Options) *TxPool {
 }
 
 func (p *TxPool) housekeeping() {
-	p.logger.Debug("enter housekeeping")
-	defer p.logger.Debug("leave housekeeping")
+	p.logger.Debug("enter txpool housekeeping")
+	defer p.logger.Debug("leave txpool housekeeping")
 
-	washInterval := 100 * time.Millisecond
+	washInterval := time.Second //10 * time.Millisecond
 	ticker := time.NewTicker(washInterval)
 	defer ticker.Stop()
 
@@ -92,6 +92,7 @@ func (p *TxPool) housekeeping() {
 	for {
 		select {
 		case <-p.done:
+			p.logger.Debug("txpool housekeeping done")
 			return
 		case <-ticker.C:
 			var headBlockChanged bool
@@ -99,16 +100,13 @@ func (p *TxPool) housekeeping() {
 				headBlock = newHeadBlock
 				headBlockChanged = true
 			}
-
-			// p.logger.Info("txpool housekeeping", "now", time.Now().Unix(), "headBlockTimestamp", headBlock.Timestamp)
-			// if headBlock.Number() <= 1 || !isChainSynced(uint64(time.Now().Unix()), headBlock.Timestamp) {
-			// 	// skip washing txs if not synced
-			// 	continue
-			// }
-
+			if !isChainSynced(uint64(time.Now().Unix()), headBlock.Timestamp) {
+				// skip washing txs if not synced
+				p.logger.Debug("chain not synced, skip washing txs")
+				continue
+			}
 			poolLen := p.all.Len()
 			p.logger.Debug("wash start", "poolLen", poolLen)
-			p.logger.Info("txpool wash start", "poolLen", poolLen)
 			// do wash on
 			// 1. head block changed
 			// 2. pool size exceeds limit
@@ -384,7 +382,7 @@ func (p *TxPool) wash(headBlock *block.Header, timeLimit time.Duration) (executa
 		}
 	})
 	p.logger.Debug("in wash", "executables size", len(executables), "non-executables size", len(nonExecutableObjs))
-	return executables, removed, nil
+	return executables, 0, nil
 }
 
 func isChainSynced(nowTimestamp, blockTimestamp uint64) bool {

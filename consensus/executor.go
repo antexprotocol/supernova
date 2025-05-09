@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/antexprotocol/supernova/block"
 	"github.com/antexprotocol/supernova/chain"
 	cmn "github.com/antexprotocol/supernova/libs/common"
 	"github.com/antexprotocol/supernova/txpool"
+	"github.com/antexprotocol/supernova/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
@@ -32,10 +34,12 @@ type Executor struct {
 	logger   *slog.Logger
 	eventBus cmttypes.BlockEventPublisher
 	txPool   *txpool.TxPool
+	txCache  map[string]uint32
+	txMutex  sync.RWMutex
 }
 
 func NewExecutor(proxyApp cmtproxy.AppConnConsensus, c *chain.Chain) *Executor {
-	return &Executor{proxyApp: proxyApp, chain: c, logger: slog.With("pkg", "exec")}
+	return &Executor{proxyApp: proxyApp, chain: c, logger: slog.With("pkg", "exec"), txCache: make(map[string]uint32)}
 }
 
 func (e *Executor) InitChain(req *abcitypes.InitChainRequest) (*abcitypes.InitChainResponse, error) {
@@ -44,6 +48,21 @@ func (e *Executor) InitChain(req *abcitypes.InitChainRequest) (*abcitypes.InitCh
 
 func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) (*abcitypes.PrepareProposalResponse, error) {
 	maxBytes := int64(cmttypes.MaxBlockSizeBytes)
+
+	// FIXME: calc max size of txs and block gas limit
+	txs := e.txPool.Executables()
+	filteredTxs := make(types.Transactions, 0)
+	e.logger.Info("prepare proposal", "round", parent.Round+1, "proposer", proposerIndex, "txs", len(txs))
+
+	// cache txs
+	e.txMutex.Lock()
+	defer e.txMutex.Unlock()
+	for _, tx := range txs {
+		if _, ok := e.txCache[hex.EncodeToString(tx.Hash())]; !ok {
+			filteredTxs = append(filteredTxs, tx)
+			e.txCache[hex.EncodeToString(tx.Hash())] = parent.Height + 1
+		}
+	}
 
 	evSize := int64(0)
 	vset := e.chain.GetValidatorsByHash(parent.ProposedBlock.NextValidatorsHash())
@@ -56,7 +75,7 @@ func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) 
 		Misbehavior:        make([]v1.Misbehavior, 0), // FIXME: track the misbehavior and preppare the evidence
 		NextValidatorsHash: parent.ProposedBlock.NextValidatorsHash(),
 		ProposerAddress:    proposerAddr,
-		Txs:                e.txPool.Executables().Convert(),
+		Txs:                filteredTxs.Convert(),
 	})
 }
 
@@ -181,6 +200,21 @@ func (e *Executor) applyBlock(blk *block.Block, syncingToHeight int64) (appHash 
 	if len(blk.Txs) != len(abciResponse.TxResults) {
 		err = fmt.Errorf("expected tx results length to match size of transactions in block. Expected %d, got %d", len(blk.Txs), len(abciResponse.TxResults))
 		return
+	}
+
+	// remove cached txs
+	e.txMutex.Lock()
+	defer e.txMutex.Unlock()
+	for txHash, height := range e.txCache {
+		if height <= blk.Number() {
+			delete(e.txCache, txHash)
+		}
+	}
+
+	// remove txs from txpool
+	for _, tx := range blk.Txs {
+		delete(e.txCache, hex.EncodeToString(tx.Hash()))
+		e.txPool.Remove(tx.Hash())
 	}
 
 	// calculate the next committee

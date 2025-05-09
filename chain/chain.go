@@ -326,16 +326,19 @@ func (c *Chain) AddBlock(newBlock *block.Block, escortQC *block.QuorumCert) (*Fo
 	// finalized block need to have a finalized parent block
 	raw, err := rlp.EncodeToBytes(newBlock)
 	if err != nil {
+		c.logger.Error("could not encode block", "err", err)
 		return nil, err
 	}
 
 	batch := c.kv.NewBatch()
 
 	if err := saveBlockRaw(batch, newBlockID, raw); err != nil {
+		c.logger.Error("could not save block raw", "err", err)
 		return nil, err
 	}
 
 	if err := saveBlockHash(batch, newBlock.Number(), newBlockID); err != nil {
+		c.logger.Error("could not save block hash", "err", err)
 		return nil, err
 	}
 
@@ -343,7 +346,8 @@ func (c *Chain) AddBlock(newBlock *block.Block, escortQC *block.QuorumCert) (*Fo
 		c.logger.Debug(fmt.Sprintf("saving tx meta for %s", tx.Hash()), "block", newBlock.Number())
 		meta, err := loadTxMeta(c.kv, tx.Hash())
 		if err != nil {
-			if !c.IsNotFound(err) {
+			if !c.IsNotFound(err) && err.Error() != "EOF" {
+				c.logger.Error("could not load tx meta", "tx", tx.Hash(), "err", err)
 				return nil, err
 			}
 		}
@@ -352,6 +356,7 @@ func (c *Chain) AddBlock(newBlock *block.Block, escortQC *block.QuorumCert) (*Fo
 			Index:   uint64(i),
 		})
 		if err := saveTxMeta(batch, tx.Hash(), meta); err != nil {
+			c.logger.Error("could not save tx meta", "tx", tx.Hash(), "err", err)
 			return nil, err
 		}
 	}
@@ -361,10 +366,12 @@ func (c *Chain) AddBlock(newBlock *block.Block, escortQC *block.QuorumCert) (*Fo
 	// c.logger.Info("isTrunk", "blk", newBlock.Number(), "isTrunk", isTrunk)
 	if isTrunk {
 		if fork, err = c.buildFork(newBlock.Header(), c.bestBlock.Header()); err != nil {
+			c.logger.Error("could not build fork", "err", err)
 			return nil, err
 		}
 
 		if err := batchSaveBestBlockID(batch, newBlockID); err != nil {
+			c.logger.Error("could not save best block id", "err", err)
 			return nil, err
 		}
 		c.bestBlock = newBlock
@@ -386,6 +393,7 @@ func (c *Chain) AddBlock(newBlock *block.Block, escortQC *block.QuorumCert) (*Fo
 	}
 
 	if err := batch.Write(); err != nil {
+		c.logger.Error("could not write batch", "err", err)
 		return nil, err
 	}
 
