@@ -346,8 +346,8 @@ func (c *Chain) AddBlock(newBlock *block.Block, escortQC *block.QuorumCert) (*Fo
 		c.logger.Debug(fmt.Sprintf("saving tx meta for %s", tx.Hash()), "block", newBlock.Number())
 		meta, err := loadTxMeta(c.kv, tx.Hash())
 		if err != nil {
-			c.logger.Error("could not load tx meta", "tx", tx.Hash(), "err", err)
-			if !c.IsNotFound(err) {
+			if !c.IsNotFound(err) && err.Error() != "EOF" {
+				c.logger.Error("could not load tx meta", "tx", tx.Hash(), "err", err)
 				return nil, err
 			}
 		}
