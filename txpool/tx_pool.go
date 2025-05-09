@@ -82,7 +82,7 @@ func (p *TxPool) housekeeping() {
 	p.logger.Debug("enter housekeeping")
 	defer p.logger.Debug("leave housekeeping")
 
-	washInterval := 10 * time.Millisecond
+	washInterval := 100 * time.Millisecond
 	ticker := time.NewTicker(washInterval)
 	defer ticker.Stop()
 
@@ -99,12 +99,15 @@ func (p *TxPool) housekeeping() {
 				headBlock = newHeadBlock
 				headBlockChanged = true
 			}
-			if !isChainSynced(uint64(time.Now().Unix()), headBlock.Timestamp) {
+
+			p.logger.Info("txpool housekeeping", "now", time.Now().Unix(), "headBlockTimestamp", headBlock.Timestamp)
+			if headBlock.Number() <= 1 || !isChainSynced(uint64(time.Now().Unix()), headBlock.Timestamp) {
 				// skip washing txs if not synced
 				continue
 			}
 			poolLen := p.all.Len()
 			p.logger.Debug("wash start", "poolLen", poolLen)
+			p.logger.Info("txpool wash start", "poolLen", poolLen)
 			// do wash on
 			// 1. head block changed
 			// 2. pool size exceeds limit
