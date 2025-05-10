@@ -26,10 +26,10 @@ import (
 )
 
 const (
-	RoundInterval        = time.Second        //200 * time.Millisecond
-	RoundTimeoutInterval = RoundInterval * 10 // round timeout 1000 ms.
-	ProposeTimeLimit     = 500 * time.Millisecond
-	BroadcastTimeLimit   = 1400 * time.Millisecond
+	// RoundInterval        = time.Second        //200 * time.Millisecond
+	// RoundTimeoutInterval = RoundInterval * 10 // round timeout 1000 ms.
+	ProposeTimeLimit   = 500 * time.Millisecond
+	BroadcastTimeLimit = 1400 * time.Millisecond
 )
 
 type Pacemaker struct {
@@ -84,9 +84,12 @@ type Pacemaker struct {
 	validatorSetRegistry *ValidatorSetRegistry
 
 	mainLoopStarted bool
+
+	RoundTimeoutInterval time.Duration
+	RoundInterval        time.Duration
 }
 
-func NewPacemaker(ctx context.Context, version string, c *chain.Chain, txpool *txpool.TxPool, p2pSrv p2p.P2P, blsMaster *types.BlsMaster, proxyApp cmtproxy.AppConns) *Pacemaker {
+func NewPacemaker(ctx context.Context, version string, c *chain.Chain, txpool *txpool.TxPool, p2pSrv p2p.P2P, blsMaster *types.BlsMaster, proxyApp cmtproxy.AppConns, roundTimeoutInterval time.Duration) *Pacemaker {
 	p := &Pacemaker{
 		ctx:       ctx,
 		logger:    slog.With("pkg", "pm"),
@@ -109,8 +112,12 @@ func NewPacemaker(ctx context.Context, version string, c *chain.Chain, txpool *t
 		timeoutCounter:       0,
 		lastOnBeatRound:      -1,
 		validatorSetRegistry: NewValidatorSetRegistry(c),
+
+		RoundTimeoutInterval: roundTimeoutInterval,
+		RoundInterval:        roundTimeoutInterval,
 	}
 	p.executor.SetTxPool(txpool)
+	p.logger.Info("Pacemaker initialized", "version", version, "roundTimeoutInterval", p.RoundTimeoutInterval, "roundInterval", p.RoundInterval)
 
 	return p
 }
@@ -789,7 +796,7 @@ func (p *Pacemaker) resetRoundTimer(round uint32, rtype roundType) time.Duration
 	}
 	// start round timer
 	if p.roundTimer == nil {
-		baseInterval := RoundTimeoutInterval
+		baseInterval := p.RoundTimeoutInterval
 		switch rtype {
 		case RegularRound:
 			p.timeoutCounter = 0
@@ -809,5 +816,5 @@ func (p *Pacemaker) resetRoundTimer(round uint32, rtype roundType) time.Duration
 		return timeoutInterval
 	}
 	// return time.Second
-	return RoundInterval
+	return p.RoundInterval
 }
