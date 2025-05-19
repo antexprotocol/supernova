@@ -400,3 +400,20 @@ func (p *TxPool) All() []*txObject {
 func (p *TxPool) Len() int {
 	return p.all.Len()
 }
+
+func (p *TxPool) LenBytes() int64 {
+	txs := p.all.ToTxs()
+	var size int64
+	for _, tx := range txs {
+		size += int64(len(tx))
+	}
+	return size
+}
+
+func (p *TxPool) ReapMaxTxs(limit int) types.Transactions {
+	txs := p.all.ToTxs()
+	if len(txs) > limit {
+		return txs[:limit]
+	}
+	return txs
+}
