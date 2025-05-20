@@ -83,6 +83,10 @@ func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx cmttypes.Tx) (*ctypes.R
 		n.logger.Error("BroadcastTxSync checkTx", "error", err)
 		return nil, err
 	}
+	if res.Code != 0 {
+		n.logger.Error("BroadcastTxSync checkTx", "hash", tx.Hash(), "result", res.String())
+		return nil, fmt.Errorf("checkTx failed: %s", res.String())
+	}
 	n.logger.Info("BroadcastTxSync checkTx", "hash", tx.Hash(), "result", res.String())
 	// fmt.Println("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
 
