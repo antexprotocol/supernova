@@ -52,7 +52,6 @@ func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) 
 	// FIXME: calc max size of txs and block gas limit
 	txs := e.txPool.Executables()
 	filteredTxs := make(types.Transactions, 0)
-	e.logger.Info("prepare proposal", "round", parent.Round+1, "proposer", proposerIndex, "txs", len(txs))
 
 	// cache txs
 	e.txMutex.Lock()
@@ -63,6 +62,7 @@ func (e *Executor) PrepareProposal(parent *block.DraftBlock, proposerIndex int) 
 			e.txCache[hex.EncodeToString(tx.Hash())] = parent.Height + 1
 		}
 	}
+	e.logger.Info("prepare proposal", "round", parent.Round+1, "proposer", proposerIndex, "txs", len(txs), "proposal_txs", len(filteredTxs))
 
 	evSize := int64(0)
 	vset := e.chain.GetValidatorsByHash(parent.ProposedBlock.NextValidatorsHash())
@@ -91,6 +91,7 @@ func (e *Executor) ProcessProposal(blk *block.Block) (bool, error) {
 		vset = e.chain.GetValidatorsByHash(parent.NextValidatorsHash())
 	}
 	proposerAddr, _ := vset.GetByIndex(int32(blk.ProposerIndex()))
+	e.logger.Info("process proposal", "number", parent.Number()+1, "proposer", blk.ProposerIndex(), "proposal_txs", len(blk.Txs))
 	resp, err := e.proxyApp.ProcessProposal(context.TODO(), &v1.ProcessProposalRequest{
 		Hash:               blk.ID().Bytes(),
 		Height:             int64(blk.Number()),
