@@ -700,7 +700,7 @@ func (n *Node) startCometBFTRPC() ([]net.Listener, error) {
 	// reactor broadcast_tx_sync/broadcast_tx_async
 	routes["broadcast_tx_sync"] = rpcserver.NewRPCFunc(n.BroadcastTxSync, "tx")
 	routes["broadcast_tx_async"] = rpcserver.NewRPCFunc(n.BroadcastTxAsync, "tx")
-	routes["tx"] = rpcserver.NewRPCFunc(n.Tx, "hash,prove", rpcserver.Cacheable())
+	// routes["tx"] = rpcserver.NewRPCFunc(n.Tx, "hash,prove", rpcserver.Cacheable())
 
 	routes["health"] = rpcserver.NewRPCFunc(n.RpcHealth, "")
 	routes["status"] = rpcserver.NewRPCFunc(n.RpcStatus, "")
@@ -710,6 +710,7 @@ func (n *Node) startCometBFTRPC() ([]net.Listener, error) {
 	routes["num_unconfirmed_txs"] = rpcserver.NewRPCFunc(n.RpcNumUnconfirmedTxs, "")
 	routes["abci_query"] = rpcserver.NewRPCFunc(n.RpcABCIQuery, "path,data,height,prove")
 	routes["abci_info"] = rpcserver.NewRPCFunc(n.RpcABCIInfo, "", rpcserver.Cacheable())
+	routes["validators"] = rpcserver.NewRPCFunc(n.RpcValidators, "height,page,per_page", rpcserver.Cacheable("height"))
 
 	if n.config.RPC.Unsafe {
 		env.AddUnsafeRoutes(routes)

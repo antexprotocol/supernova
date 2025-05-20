@@ -30,3 +30,22 @@ func (txs Transactions) Convert() [][]byte {
 	}
 	return txbytes
 }
+
+func (txs Transactions) hashList() [][]byte {
+	hl := make([][]byte, len(txs))
+	for i := 0; i < len(txs); i++ {
+		hl[i] = txs[i].Hash()
+	}
+	return hl
+}
+
+func (txs Transactions) Proof(i int) cmttypes.TxProof {
+	hl := txs.hashList()
+	root, proofs := merkle.ProofsFromByteSlices(hl)
+
+	return cmttypes.TxProof{
+		RootHash: root,
+		Data:     txs[i],
+		Proof:    *proofs[i],
+	}
+}

@@ -8,7 +8,9 @@ import (
 
 	"github.com/antexprotocol/supernova/types"
 	abci "github.com/cometbft/cometbft/abci/types"
+	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
 	cmtbytes "github.com/cometbft/cometbft/libs/bytes"
+	cmtmath "github.com/cometbft/cometbft/libs/math"
 	"github.com/cometbft/cometbft/proxy"
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
 	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
@@ -42,15 +44,46 @@ func (*Node) validatePerPage(perPagePtr *int) int {
 	return perPage
 }
 
+func (*Node) validatePage(pagePtr *int, perPage, totalCount int) (int, error) {
+	if perPage < 1 {
+		panic(fmt.Sprintf("zero or negative perPage: %d", perPage))
+	}
+
+	if pagePtr == nil { // no page parameter
+		return 1, nil
+	}
+
+	pages := ((totalCount - 1) / perPage) + 1
+	if pages == 0 {
+		pages = 1 // one page (even if it's empty)
+	}
+	page := *pagePtr
+	if page <= 0 || page > pages {
+		return 1, fmt.Errorf("page should be within [1, %d] range, given %d", pages, page)
+	}
+
+	return page, nil
+}
+
+func (*Node) validateSkipCount(page, perPage int) int {
+	skipCount := (page - 1) * perPage
+	if skipCount < 0 {
+		return 0
+	}
+
+	return skipCount
+}
+
 func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx cmttypes.Tx) (*ctypes.ResultBroadcastTx, error) {
-	// res, err := n.proxyApp.Mempool().CheckTx(ctx.Context(), &abci.CheckTxRequest{
-	// 	Tx:   tx,
-	// 	Type: v1.CHECK_TX_TYPE_CHECK,
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// n.logger.Info("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
+	res, err := n.proxyApp.Mempool().CheckTx(ctx.Context(), &abci.CheckTxRequest{
+		Tx:   tx,
+		Type: v1.CHECK_TX_TYPE_CHECK,
+	})
+	if err != nil {
+		n.logger.Error("BroadcastTxSync checkTx", "error", err)
+		return nil, err
+	}
+	n.logger.Info("BroadcastTxSync checkTx", "hash", tx.Hash(), "result", res.String())
 	// fmt.Println("BroadcastTxSync", "hash", tx.Hash(), "result", res.String())
 
 	// pid, err := peer.IDFromBytes(n.nodeKey.PrivKey.Bytes())
@@ -60,7 +93,7 @@ func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx cmttypes.Tx) (*ctypes.R
 	// }
 
 	// err = n.rpc.NotifyNewTx(pid, tx)
-	err := n.txPool.StrictlyAdd(tx)
+	err = n.txPool.StrictlyAdd(tx)
 	if err != nil {
 		n.logger.Error("BroadcastTxSync NotifyNewTx", "error", err)
 		return nil, err
@@ -68,11 +101,11 @@ func (n *Node) BroadcastTxSync(ctx *rpctypes.Context, tx cmttypes.Tx) (*ctypes.R
 	n.logger.Info("BroadcastTxSync", "hash", hex.EncodeToString(tx.Hash()))
 
 	return &ctypes.ResultBroadcastTx{
-		Code: 0,
-		// Data:      res.Data,
-		// Log:       res.Log,
-		// Codespace: res.Codespace,
-		Hash: tx.Hash(),
+		Code:      0,
+		Data:      res.Data,
+		Log:       res.Log,
+		Codespace: res.Codespace,
+		Hash:      tx.Hash(),
 	}, nil
 }
 
@@ -101,15 +134,6 @@ func (n *Node) Tx(ctx *rpctypes.Context, hash []byte, prove bool) (*ctypes.Resul
 	// 		proof = block.Data.Txs.Proof(int(r.Index))
 	// 	}
 	// }
-
-	// return &ctypes.ResultTx{
-	// 	Hash:     hash,
-	// 	Height:   r.Height,
-	// 	Index:    r.Index,
-	// 	TxResult: r.Result,
-	// 	Tx:       r.Tx,
-	// 	Proof:    proof,
-	// }, nil
 	return nil, nil
 }
 
@@ -183,6 +207,47 @@ func (n *Node) RpcStatus(*rpctypes.Context) (*ctypes.ResultStatus, error) {
 	}
 
 	return result, nil
+}
+
+func (n *Node) RpcValidators(
+	_ *rpctypes.Context,
+	heightPtr *int64,
+	pagePtr, perPagePtr *int,
+) (*ctypes.ResultValidators, error) {
+	// The latest validator that we know is the NextValidator of the last block.
+	latestHeight := int64(n.chain.BestBlock().Number())
+	queryHeight := latestHeight
+	if heightPtr != nil {
+		height := *heightPtr
+		if height <= 0 {
+			return nil, fmt.Errorf("height must be greater than 0, but got %d", height)
+		}
+		if height > latestHeight {
+			return nil, fmt.Errorf("height %d must be less than or equal to the current blockchain height %d",
+				height, latestHeight)
+		}
+		queryHeight = height
+	}
+
+	validators := n.chain.GetValidatorSet(uint32(queryHeight))
+
+	totalCount := len(validators.Validators)
+	perPage := n.validatePerPage(perPagePtr)
+	page, err := n.validatePage(pagePtr, perPage, totalCount)
+	if err != nil {
+		return nil, err
+	}
+
+	skipCount := n.validateSkipCount(page, perPage)
+
+	v := validators.Validators[skipCount : skipCount+cmtmath.MinInt(perPage, totalCount-skipCount)]
+
+	return &ctypes.ResultValidators{
+		BlockHeight: queryHeight,
+		Validators:  v,
+		Count:       len(v),
+		Total:       totalCount,
+	}, nil
 }
 
 func (n *Node) RpcBlock(_ *rpctypes.Context, heightPtr *int64) (*ctypes.ResultBlock, error) {
