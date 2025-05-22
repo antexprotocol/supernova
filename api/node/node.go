@@ -64,7 +64,7 @@ func (n *Node) handleProbe(w http.ResponseWriter, r *http.Request) error {
 		CommitteeSize:  uint32(pmProbe.CommitteeSize),
 		CommitteeIndex: uint32(pmProbe.CommitteeIndex),
 
-		BestQC:    n.Chain.BestBlock().Number(),
+		BestQC:    bestQC.Round, // n.Chain.BestBlock().Number(),
 		BestBlock: bestBlock.Number,
 		Pacemaker: pacemaker,
 		Chain:     chainProbe,
