@@ -14,6 +14,7 @@ import (
 
 const initSyncInterval = 500 * time.Millisecond
 const syncInterval = 6 * time.Second
+const activeSyncInterval = 30 * time.Second
 
 // Sync start synchronization process.
 func (s *RPCServer) Sync(handler HandleBlockStream) {
@@ -22,17 +23,31 @@ func (s *RPCServer) Sync(handler HandleBlockStream) {
 		defer timer.Stop()
 		delay := initSyncInterval
 		syncCount := 0
+		lastSyncTime := time.Now()
 
 		shouldSynced := func() bool {
 			bestBlockTime := s.chain.BestBlock().Timestamp()
 			now := uint64(time.Now().Unix())
-			if bestBlockTime+types.BlockInterval >= now && s.chain.BestQC().BlockID == s.chain.BestBlock().ID() {
+
+			timeDiff := now - bestBlockTime
+			if bestBlockTime > now {
+				timeDiff = bestBlockTime - now
+			}
+
+			isSynced := timeDiff < types.BlockInterval*3 && s.chain.BestQC().BlockID == s.chain.BestBlock().ID()
+
+			peers := s.p2pSrv.Peers().All()
+			if len(peers) == 0 {
+				s.logger.Debug("no peers available, assuming synced")
 				return true
 			}
-			if syncCount > 2 {
-				return true
+
+			if isSynced && time.Since(lastSyncTime) > activeSyncInterval {
+				s.logger.Debug("periodic sync check needed")
+				return false
 			}
-			return false
+
+			return isSynced
 		}
 
 		for {
@@ -53,15 +68,22 @@ func (s *RPCServer) Sync(handler HandleBlockStream) {
 				if len(peers) < 1 {
 					s.logger.Debug("no suitable peer to sync")
 					break
-					// if more than 3 peers connected, we are assumed to be the best
-					s.logger.Debug("synchronization done, best assumed")
 				} else {
-					// FIXME: randomly pick peer
-					if err := s.download(peers[0], handler); err != nil {
-						s.logger.Debug("synchronization failed", "err", err)
+					synced := false
+					for _, peerID := range peers {
+						if err := s.download(peerID, handler); err != nil {
+							s.logger.Debug("synchronization failed", "peer", peerID, "err", err)
+							continue
+						}
+						s.logger.Debug("synchronization done", "peer", peerID)
+						synced = true
+						lastSyncTime = time.Now()
 						break
 					}
-					s.logger.Debug("synchronization done")
+
+					if !synced {
+						s.logger.Warn("failed to sync from any peer")
+					}
 				}
 				syncCount++
 
@@ -71,6 +93,10 @@ func (s *RPCServer) Sync(handler HandleBlockStream) {
 						// s.Synced = true
 						close(s.syncedCh)
 					})
+				} else {
+					if delay > initSyncInterval*4 {
+						delay = initSyncInterval * 2
+					}
 				}
 			}
 		}
@@ -137,7 +163,6 @@ func (s *RPCServer) download(peerID peer.ID, handler HandleBlockStream) error {
 			})
 
 			for _, blk := range blocks {
-				// peer.MarkBlock(blk.Block.ID())
 				select {
 				case <-ctx.Done():
 					return

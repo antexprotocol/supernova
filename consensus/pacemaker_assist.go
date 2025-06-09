@@ -167,7 +167,69 @@ func (p *Pacemaker) amIRoundProproser(round uint32) bool {
 	if proposer == nil || proposer.PubKey == nil {
 		return false
 	}
-	return bytes.Equal(proposer.PubKey.Bytes(), p.blsMaster.CmtPubKey.Bytes())
+
+	// check if it is the specified proposer
+	isProposer := bytes.Equal(proposer.PubKey.Bytes(), p.blsMaster.CmtPubKey.Bytes())
+	if !isProposer {
+		return false
+	}
+
+	// 🔥 critical fix: allow honest nodes to propose new QC to fight against malicious QC
+	// only block proposals when genuinely behind, otherwise allow proposals to correct network state
+	if p.shouldSkipProposalDueToSyncLag() {
+		p.logger.Warn("skipping proposal - genuinely behind, need sync first",
+			"round", round,
+			"bestBlock", p.chain.BestBlock().Number(),
+			"bestQC", p.QCHigh.QC.Number())
+		return false
+	}
+
+	return true
+}
+
+// isNodeSynced check if node is synced
+func (p *Pacemaker) isNodeSynced() bool {
+	// use sync status manager to check
+	return p.syncStatusManager.IsSynced()
+}
+
+// isSafeToPropose check if it is safe to propose (considering fork attacks)
+func (p *Pacemaker) isSafeToPropose() bool {
+	return p.syncStatusManager.IsSafeToPropose()
+}
+
+// shouldSkipProposalDueToSyncLag check if it is because truly behind and should skip proposal
+// 🔥 critical security strategy: only block proposals when genuinely behind, prevent malicious QC attack from succeeding
+func (p *Pacemaker) shouldSkipProposalDueToSyncLag() bool {
+	bestBlock := p.chain.BestBlock()
+	bestQC := p.QCHigh.QC
+
+	// if local best block is significantly behind the QC claimed height (more than 5 blocks), and QC has been verified
+	// then it might really need to sync
+	blockGap := int64(bestQC.Number()) - int64(bestBlock.Number())
+
+	// only consider truly behind when gap exceeds threshold and QC has been verified
+	if blockGap > 5 {
+		// validate if this QC is really valid (prevent malicious QC)
+		qcBlock, err := p.chain.GetBlock(bestQC.BlockID)
+		if err == nil && qcBlock != nil {
+			if p.ValidateQC(qcBlock, bestQC) {
+				p.logger.Info("genuinely behind, need sync",
+					"bestBlock", bestBlock.Number(),
+					"qcBlock", bestQC.Number(),
+					"gap", blockGap)
+				return true
+			} else {
+				p.logger.Warn("invalid QC detected, ignoring claimed height",
+					"qc", bestQC.CompactString())
+			}
+		} else {
+			p.logger.Debug("QC refers to unknown block, may be malicious",
+				"qc", bestQC.CompactString())
+		}
+	}
+
+	return false
 }
 
 func (p *Pacemaker) SignMessage(msg block.ConsensusMessage) {

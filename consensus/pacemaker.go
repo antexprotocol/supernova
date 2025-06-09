@@ -83,6 +83,9 @@ type Pacemaker struct {
 
 	validatorSetRegistry *ValidatorSetRegistry
 
+	// sync status manager
+	syncStatusManager *SyncStatusManager
+
 	mainLoopStarted bool
 
 	RoundTimeoutInterval time.Duration
@@ -112,6 +115,7 @@ func NewPacemaker(ctx context.Context, version string, c *chain.Chain, txpool *t
 		timeoutCounter:       0,
 		lastOnBeatRound:      -1,
 		validatorSetRegistry: NewValidatorSetRegistry(c),
+		syncStatusManager:    NewSyncStatusManager(c),
 
 		RoundTimeoutInterval: roundTimeoutInterval,
 		RoundInterval:        roundTimeoutInterval,
@@ -364,6 +368,15 @@ func (p *Pacemaker) OnReceiveProposal(mi IncomingMsg) {
 	}
 
 	if bnew.Height >= p.lastVotingHeight && p.ExtendedFromLastCommitted(bnew) {
+		// vote check: vote should be more strict, must ensure node is truly synced
+		if p.shouldSkipProposalDueToSyncLag() {
+			p.logger.Warn("skip voting - genuinely behind, need sync",
+				"bnew.height", bnew.Height,
+				"bestBlock", p.chain.BestBlock().Number(),
+				"bestQC", p.QCHigh.QC.Number())
+			return
+		}
+
 		voteMsg, err := p.BuildVoteMessage(msg)
 		if err != nil {
 			p.logger.Error("could not build vote message", "err", err)
@@ -535,8 +548,18 @@ func (p *Pacemaker) OnReceiveTimeout(mi IncomingMsg) {
 	}
 
 	qc := msg.DecodeQCHigh()
-	qcNode := p.chain.GetDraftByEscortQC(qc)
-	p.UpdateQCHigh(&block.DraftQC{QCNode: qcNode, QC: qc})
+	// 🔥 critical fix: must strictly validate QC, cannot trust malicious QC
+	if qc != nil && p.validateReceivedQC(qc) {
+		qcNode := p.chain.GetDraftByEscortQC(qc)
+		if qcNode != nil {
+			p.UpdateQCHigh(&block.DraftQC{QCNode: qcNode, QC: qc})
+			p.logger.Debug("accepted validated QC from timeout message", "qc", qc.CompactString())
+		} else {
+			p.logger.Warn("QC refers to unknown block, ignoring", "qc", qc.CompactString())
+		}
+	} else {
+		p.logger.Warn("received invalid QC in timeout message, ignoring", "qc", qc.CompactString())
+	}
 
 	// collect wish vote to see if TC is formed
 	tc := p.epochState.AddTCVote(msg.SignerIndex, msg.WishRound, msg.WishVoteSig, msg.WishVoteHash)
