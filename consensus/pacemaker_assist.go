@@ -252,7 +252,3 @@ branch:   %v  %v`, fork.Ancestor,
 			branchLen, fork.Branch[branchLen-1]))
 	}
 }
-
-func (p *Pacemaker) EpochStartKBlockNum() uint32 {
-	return block.Number(p.epochState.startKBlockID)
-}

@@ -16,7 +16,7 @@ import (
 	"github.com/antexprotocol/supernova/genesis"
 	"github.com/antexprotocol/supernova/libs/co"
 	"github.com/antexprotocol/supernova/types"
-	db "github.com/cometbft/cometbft-db"
+	cmtdb "github.com/cometbft/cometbft-db"
 	abci "github.com/cometbft/cometbft/abci/types"
 	v1 "github.com/cometbft/cometbft/api/cometbft/abci/v1"
 	cmtproto "github.com/cometbft/cometbft/api/cometbft/types/v1"
@@ -54,7 +54,7 @@ var ErrInvalidGenesis = errors.New("invalid genesis")
 // Chain describes a persistent block chain.
 // It's thread-safe.
 type Chain struct {
-	kv           db.DB
+	db           cmtdb.DB
 	genesisBlock *block.Block
 	bestBlock    *block.Block
 	bestQC       *block.QuorumCert
@@ -75,13 +75,13 @@ type caches struct {
 var log = slog.With("pkg", "c")
 
 // New create an instance of Chain.
-func New(kv db.DB, verbose bool) (*Chain, error) {
+func New(db cmtdb.DB, verbose bool) (*Chain, error) {
 	prometheus.Register(bestQCHeightGauge)
 	prometheus.Register(bestHeightGauge)
 	logger := slog.With("pkg", "c")
 
 	rawBlocksCache := newCache(blockCacheLimit, func(key interface{}) (interface{}, error) {
-		raw, err := loadBlockRaw(kv, key.(types.Bytes32))
+		raw, err := loadBlockRaw(db, key.(types.Bytes32))
 		if err != nil {
 			return nil, err
 		}
@@ -92,7 +92,7 @@ func New(kv db.DB, verbose bool) (*Chain, error) {
 	})
 
 	c := &Chain{
-		kv: kv,
+		db: db,
 		// bestBlock: bestBlock,
 		// bestQC:    bestQC,
 		caches: caches{
@@ -108,10 +108,7 @@ func New(kv db.DB, verbose bool) (*Chain, error) {
 func (c *Chain) Initialize(gene *genesis.Genesis) error {
 	var bestBlock *block.Block
 
-	bestBlockID, _ := loadBestBlockID(c.kv)
-	c.logger.Info("Initializing chain", "bestBlockID", bestBlockID)
-
-	if bytes.Equal(bestBlockID.Bytes(), (&types.Bytes32{}).Bytes()) {
+	if bestBlockID, _ := loadBestBlockID(c.db); bytes.Equal(bestBlockID.Bytes(), (&types.Bytes32{}).Bytes()) {
 		// could not load bestblock, usually this means chain is not initialized
 		genesisBlock, err := gene.Build()
 		if err != nil {
@@ -130,17 +127,17 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 		nextVSet := gene.NextValidatorSet()
 		genesisEscortQC := block.GenesisEscortQC(genesisBlock, nextVSet.Size())
 
-		if _, err := loadValidatorSet(c.kv, vset.Hash()); err != nil {
+		if _, err := loadValidatorSet(c.db, vset.Hash()); err != nil {
 			c.logger.Info("saving genesis validator set", "hash", hex.EncodeToString(vset.Hash()), "size", vset.Size())
-			err = saveValidatorSet(c.kv, vset)
+			err = saveValidatorSet(c.db, vset)
 			if err != nil {
 				return err
 			}
 		}
 
-		if _, err := loadValidatorSet(c.kv, nextVSet.Hash()); err != nil {
+		if _, err := loadValidatorSet(c.db, nextVSet.Hash()); err != nil {
 			c.logger.Info("saving genesis next validator set", "hash", hex.EncodeToString(nextVSet.Hash()), "size", nextVSet.Size())
-			err = saveValidatorSet(c.kv, nextVSet)
+			err = saveValidatorSet(c.db, nextVSet)
 			if err != nil {
 				return err
 			}
@@ -153,7 +150,7 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 			return err
 		}
 
-		batch := c.kv.NewBatch()
+		batch := c.db.NewBatch()
 		if err := saveBlockRaw(batch, genesisID, raw); err != nil {
 			return err
 		}
@@ -179,12 +176,12 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 		// load them into chain object
 		c.logger.Info("chain is initialized in db")
 
-		existGenesisID, err := loadBlockHash(c.kv, 0)
+		existGenesisID, err := loadBlockHash(c.db, 0)
 		if err != nil {
 			return err
 		}
 		fmt.Println("exist genesis ID", existGenesisID.String())
-		geneRaw, err := loadBlockRaw(c.kv, existGenesisID)
+		geneRaw, err := loadBlockRaw(c.db, existGenesisID)
 		if err != nil {
 			return err
 		}
@@ -192,9 +189,7 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 		if err != nil {
 			return err
 		}
-		c.logger.Info("check vset and nextVset", "vsetHash", geneBlock.ValidatorsHash(), "nextVsetHash", geneBlock.NextValidatorsHash())
-
-		nxtVSet, err := loadValidatorSet(c.kv, geneBlock.NextValidatorsHash())
+		nxtVSet, err := loadValidatorSet(c.db, geneBlock.NextValidatorsHash())
 		if err != nil {
 			return err
 		}
@@ -202,7 +197,7 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 		geneEscortQC := block.GenesisEscortQC(geneBlock, nxtVSet.Size())
 
 		fmt.Println("load best block ID", bestBlockID.String())
-		raw, err := loadBlockRaw(c.kv, bestBlockID)
+		raw, err := loadBlockRaw(c.db, bestBlockID)
 		if err != nil {
 			return err
 		}
@@ -210,12 +205,11 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 		if err != nil {
 			return err
 		}
-		if _, err = loadBestQC(c.kv); err != nil {
-			saveBestQC(c.kv, geneEscortQC)
+		if _, err = loadBestQC(c.db); err != nil {
+			saveBestQC(c.db, geneEscortQC)
 		}
 	}
-
-	bestQC, err := loadBestQC(c.kv)
+	bestQC, err := loadBestQC(c.db)
 	if err != nil {
 		return err
 	}
@@ -226,12 +220,12 @@ func (c *Chain) Initialize(gene *genesis.Genesis) error {
 		c.logger.Warn("best block > best QC, start to correct best block", "bestBlock", bestBlock.Number(), "bestQC", bestQC.Number())
 		matchBestBlockID := bestQC.BlockID
 
-		matchBestBlockRaw, err := loadBlockRaw(c.kv, matchBestBlockID)
+		matchBestBlockRaw, err := loadBlockRaw(c.db, matchBestBlockID)
 		if err != nil {
 			c.logger.Error("could not load raw for bestBlockBeforeFlattern", "err", err)
 		} else {
 			bestBlock, _ = (&rawBlock{raw: matchBestBlockRaw}).Block()
-			saveBestBlockID(c.kv, matchBestBlockID)
+			saveBestBlockID(c.db, matchBestBlockID)
 		}
 	}
 	c.bestQC = bestQC
@@ -266,7 +260,7 @@ func (c *Chain) BestKBlock() (*block.Block, error) {
 		return c.bestBlock, nil
 	} else {
 		lastKblockHeight := c.bestBlock.LastKBlock()
-		id, err := loadBlockHash(c.kv, lastKblockHeight)
+		id, err := loadBlockHash(c.db, lastKblockHeight)
 		if err != nil {
 			return nil, err
 		}
@@ -300,7 +294,7 @@ func (c *Chain) AddBlock(newBlock *block.Block, escortQC *block.QuorumCert) (*Fo
 		newHeader := newBlock.Header()
 		if header.Number() == newHeader.Number() &&
 			header.ParentID == newHeader.ParentID &&
-			header.Timestamp == newHeader.Timestamp &&
+			header.NanoTimestamp == newHeader.NanoTimestamp &&
 			parentFinalized {
 			// if the current block is the finalized version of saved block, update it accordingly
 			// do nothing
@@ -330,7 +324,7 @@ func (c *Chain) AddBlock(newBlock *block.Block, escortQC *block.QuorumCert) (*Fo
 		return nil, err
 	}
 
-	batch := c.kv.NewBatch()
+	batch := c.db.NewBatch()
 
 	if err := saveBlockRaw(batch, newBlockID, raw); err != nil {
 		c.logger.Error("could not save block raw", "err", err)
@@ -344,7 +338,7 @@ func (c *Chain) AddBlock(newBlock *block.Block, escortQC *block.QuorumCert) (*Fo
 
 	for i, tx := range newBlock.Transactions() {
 		c.logger.Debug(fmt.Sprintf("saving tx meta for %s", tx.Hash()), "block", newBlock.Number())
-		meta, err := loadTxMeta(c.kv, tx.Hash())
+		meta, err := loadTxMeta(c.db, tx.Hash())
 		if err != nil {
 			if !c.IsNotFound(err) && err.Error() != "EOF" {
 				c.logger.Error("could not load tx meta", "tx", tx.Hash(), "err", err)
@@ -444,7 +438,7 @@ func (c *Chain) GetBlockRaw(id types.Bytes32) (block.Raw, error) {
 func (c *Chain) GetAncestorBlockID(descendantID types.Bytes32, ancestorNum uint32) (types.Bytes32, error) {
 	c.rw.RLock()
 	defer c.rw.RUnlock()
-	return loadBlockHash(c.kv, ancestorNum)
+	return loadBlockHash(c.db, ancestorNum)
 
 }
 
@@ -473,7 +467,7 @@ func (c *Chain) GetTransaction(blockID types.Bytes32, index uint64) (cmttypes.Tx
 func (c *Chain) GetTrunkBlockID(num uint32) (types.Bytes32, error) {
 	c.rw.RLock()
 	defer c.rw.RUnlock()
-	return loadBlockHash(c.kv, num)
+	return loadBlockHash(c.db, num)
 }
 
 // GetTrunkBlockHeader get block header on trunk by given block number.
@@ -540,11 +534,6 @@ func (c *Chain) GetTrunkTransaction(txID []byte) (cmttypes.Tx, *TxMeta, error) {
 		return nil, nil, err
 	}
 	return tx, meta, nil
-}
-
-// NewSeeker returns a new seeker instance.
-func (c *Chain) NewSeeker(headBlockID types.Bytes32) *Seeker {
-	return newSeeker(c, headBlockID)
 }
 
 func (c *Chain) isTrunk(header *block.Header) bool {
@@ -655,11 +644,11 @@ func (c *Chain) getBlock(id types.Bytes32) (*block.Block, error) {
 }
 
 func (c *Chain) hasTransactionMeta(txID []byte) (bool, error) {
-	return c.kv.Has(append(txMetaPrefix, txID...))
+	return c.db.Has(append(txMetaPrefix, txID...))
 }
 
 func (c *Chain) getTransactionMeta(txID []byte, headBlockID types.Bytes32) (*TxMeta, error) {
-	meta, err := loadTxMeta(c.kv, txID)
+	meta, err := loadTxMeta(c.db, txID)
 	if err != nil {
 		return nil, err
 	}
@@ -667,7 +656,7 @@ func (c *Chain) getTransactionMeta(txID []byte, headBlockID types.Bytes32) (*TxM
 		return nil, ErrNotFound
 	}
 	for _, m := range meta {
-		ancestorID, err := loadBlockHash(c.kv, block.Number(m.BlockID))
+		ancestorID, err := loadBlockHash(c.db, block.Number(m.BlockID))
 		if err != nil {
 			if c.IsNotFound(err) {
 				continue
@@ -748,7 +737,7 @@ func (c *Chain) NewBlockReader(position types.Bytes32) BlockReader {
 				continue
 			}
 
-			ancestor, err := loadBlockHash(c.kv, block.Number(position))
+			ancestor, err := loadBlockHash(c.db, block.Number(position))
 			// ancestor, err := c.ancestorTrie.GetAncestor(bestID, block.Number(position))
 			if err != nil {
 				return nil, err
@@ -770,7 +759,7 @@ func (c *Chain) NewBlockReader(position types.Bytes32) BlockReader {
 }
 
 func (c *Chain) nextBlock(descendantID types.Bytes32, num uint32) (*block.Block, error) {
-	next, err := loadBlockHash(c.kv, num+1)
+	next, err := loadBlockHash(c.db, num+1)
 	if err != nil {
 		return nil, err
 	}
@@ -878,7 +867,7 @@ func (c *Chain) RawBlocksCacheLen() int {
 }
 
 func (c *Chain) GetBestNextValidatorSet() *cmttypes.ValidatorSet {
-	vset, err := loadValidatorSet(c.kv, c.bestBlock.NextValidatorsHash())
+	vset, err := loadValidatorSet(c.db, c.bestBlock.NextValidatorsHash())
 	if err != nil {
 		fmt.Println("could not load next vset", "hash", c.bestBlock.NextValidatorsHash(), "num", c.bestBlock.Number(), "err", err)
 		return nil
@@ -887,8 +876,7 @@ func (c *Chain) GetBestNextValidatorSet() *cmttypes.ValidatorSet {
 }
 
 func (c *Chain) GetBestValidatorSet() *cmttypes.ValidatorSet {
-	c.logger.Info("GetBestValidatorSet", "hash", c.bestBlock.ValidatorsHash())
-	vset, err := loadValidatorSet(c.kv, c.bestBlock.ValidatorsHash())
+	vset, err := loadValidatorSet(c.db, c.bestBlock.ValidatorsHash())
 	c.logger.Debug("get best validator set", "hash", c.bestBlock.ValidatorsHash(), "num", c.bestBlock.Number(), "err", err)
 	if err != nil {
 		c.logger.Warn("could not load vset", "hash", c.bestBlock.ValidatorsHash(), "num", c.bestBlock.Number(), "err", err)
@@ -898,7 +886,7 @@ func (c *Chain) GetBestValidatorSet() *cmttypes.ValidatorSet {
 }
 
 func (c *Chain) GetValidatorSet(num uint32) *cmttypes.ValidatorSet {
-	hash, err := loadBlockHash(c.kv, num)
+	hash, err := loadBlockHash(c.db, num)
 	if err != nil {
 		return nil
 	}
@@ -906,7 +894,7 @@ func (c *Chain) GetValidatorSet(num uint32) *cmttypes.ValidatorSet {
 	if err != nil {
 		return nil
 	}
-	vset, err := loadValidatorSet(c.kv, blk.ValidatorsHash())
+	vset, err := loadValidatorSet(c.db, blk.ValidatorsHash())
 	if err != nil {
 		return nil
 	}
@@ -915,7 +903,7 @@ func (c *Chain) GetValidatorSet(num uint32) *cmttypes.ValidatorSet {
 
 // FIXME: should add cache
 func (c *Chain) GetValidatorsByHash(hash cmtbytes.HexBytes) *cmttypes.ValidatorSet {
-	vset, err := loadValidatorSet(c.kv, hash)
+	vset, err := loadValidatorSet(c.db, hash)
 	if err != nil {
 		c.logger.Warn("load validator set "+hex.EncodeToString(hash)+" failed", "err", err)
 		return nil
@@ -924,7 +912,7 @@ func (c *Chain) GetValidatorsByHash(hash cmtbytes.HexBytes) *cmttypes.ValidatorS
 }
 
 func (c *Chain) GetNextValidatorSet(num uint32) *cmttypes.ValidatorSet {
-	hash, err := loadBlockHash(c.kv, num)
+	hash, err := loadBlockHash(c.db, num)
 	if err != nil {
 		return nil
 	}
@@ -933,7 +921,7 @@ func (c *Chain) GetNextValidatorSet(num uint32) *cmttypes.ValidatorSet {
 		return nil
 	}
 	c.logger.Debug("load validator set from ", "num", blk.Number(), "hash", blk.NextValidatorsHash())
-	vset, err := loadValidatorSet(c.kv, blk.NextValidatorsHash())
+	vset, err := loadValidatorSet(c.db, blk.NextValidatorsHash())
 	if err != nil {
 		return nil
 	}
@@ -941,7 +929,7 @@ func (c *Chain) GetNextValidatorSet(num uint32) *cmttypes.ValidatorSet {
 }
 
 func (c *Chain) SaveValidatorSet(vset *cmttypes.ValidatorSet) {
-	err := saveValidatorSet(c.kv, vset)
+	err := saveValidatorSet(c.db, vset)
 	if err != nil {
 		panic(err)
 	}
@@ -949,20 +937,20 @@ func (c *Chain) SaveValidatorSet(vset *cmttypes.ValidatorSet) {
 
 func (c *Chain) GetInitChainResponse() (*v1.InitChainResponse, error) {
 	fmt.Println("get init chain response")
-	return loadInitChainResponse(c.kv)
+	return loadInitChainResponse(c.db)
 }
 
 func (c *Chain) SaveInitChainResponse(res *v1.InitChainResponse) error {
 	fmt.Println("save init chain response")
-	return saveInitChainResponse(c.kv, res)
+	return saveInitChainResponse(c.db, res)
 }
 
 func (c *Chain) GetFinalizeBlockResponse(blockID types.Bytes32) (*v1.FinalizeBlockResponse, error) {
-	return loadFinalizeBlockResponse(c.kv, blockID)
+	return loadFinalizeBlockResponse(c.db, blockID)
 }
 
 func (c *Chain) SaveFinalizeBlockResponse(blockID types.Bytes32, res *v1.FinalizeBlockResponse) error {
-	return saveFinalizeBlockResponse(c.kv, blockID, res)
+	return saveFinalizeBlockResponse(c.db, blockID, res)
 }
 
 func (c *Chain) GetQCForBlock(blkID types.Bytes32) (*block.QuorumCert, error) {

@@ -12,7 +12,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/OffchainLabs/prysm/v6/config/params"
 	"github.com/OffchainLabs/prysm/v6/consensus-types/wrapper"
 	ecdsaprysm "github.com/OffchainLabs/prysm/v6/crypto/ecdsa"
 	"github.com/OffchainLabs/prysm/v6/io/file"
@@ -78,7 +77,7 @@ func privKey(cfg *Config) (*ecdsa.PrivateKey, error) {
 	}
 
 	// If the StaticPeerID flag is not set and if peerDAS is not enabled, return the private key.
-	if !(cfg.StaticPeerID || params.PeerDASEnabled()) {
+	if !(cfg.StaticPeerID) {
 		return ecdsaprysm.ConvertFromInterfacePrivKey(priv)
 	}
 

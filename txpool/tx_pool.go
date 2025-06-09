@@ -17,7 +17,6 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/ethereum/go-ethereum/common/mclock"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -100,7 +99,7 @@ func (p *TxPool) housekeeping() {
 				headBlock = newHeadBlock
 				headBlockChanged = true
 			}
-			if !isChainSynced(uint64(time.Now().Unix()), headBlock.Timestamp) {
+			if !isChainSynced(uint64(time.Now().UnixNano()), headBlock.NanoTimestamp) {
 				// skip washing txs if not synced
 				p.logger.Debug("chain not synced, skip washing txs")
 				continue
@@ -163,7 +162,7 @@ func (p *TxPool) add(newTx cmttypes.Tx, rejectNonexecutable bool) error {
 	}
 
 	headBlock := p.chain.BestBlock().Header()
-	if isChainSynced(uint64(time.Now().Unix()), headBlock.Timestamp) {
+	if isChainSynced(uint64(time.Now().UnixNano()), headBlock.NanoTimestamp) {
 		executable, err := txObj.Executable(p.chain, headBlock)
 		if err != nil {
 			return txRejectedError{err.Error()}
@@ -305,7 +304,6 @@ func (p *TxPool) wash(headBlock *block.Header, timeLimit time.Duration) (executa
 	}()
 	start := time.Now()
 	var (
-		seeker            = p.chain.NewSeeker(headBlock.ID())
 		executableObjs    = make([]*txObject, 0, len(all))
 		nonExecutableObjs = make([]*txObject, 0, len(all))
 		now               = time.Now().UnixNano()
@@ -334,10 +332,6 @@ func (p *TxPool) wash(headBlock *block.Header, timeLimit time.Duration) (executa
 			p.logger.Info("tx wash ended early due to time limit", "elapsed", types.PrettyDuration(time.Since(start)), "execs", len(executableObjs))
 			break
 		}
-	}
-
-	if err := seeker.Err(); err != nil {
-		return nil, 0, errors.WithMessage(err, "seeker")
 	}
 
 	// sort objs by price from high to low

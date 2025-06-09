@@ -21,7 +21,7 @@ type SyncStatusManager struct {
 	syncStartTime time.Time
 
 	// sync status configuration
-	maxTimeLag        uint64 // maximum allowed time lag (seconds)
+	maxTimeLag        uint64 // maximum allowed time lag (nanoseconds)
 	syncCheckInterval time.Duration
 }
 
@@ -61,12 +61,12 @@ func (ssm *SyncStatusManager) checkSyncStatus() {
 
 	bestBlock := ssm.chain.BestBlock()
 	bestQC := ssm.chain.BestQC()
-	now := uint64(time.Now().Unix())
+	nowNano := uint64(time.Now().UnixNano())
 
 	// check1: time sync - but allow some time difference
-	timeDiff := now - bestBlock.Timestamp()
-	if bestBlock.Timestamp() > now {
-		timeDiff = bestBlock.Timestamp() - now
+	timeDiff := nowNano - bestBlock.NanoTimestamp()
+	if bestBlock.NanoTimestamp() > nowNano {
+		timeDiff = bestBlock.NanoTimestamp() - nowNano
 	}
 
 	// if time difference is too large, consider not synced (relaxed condition)
@@ -155,12 +155,12 @@ func (ssm *SyncStatusManager) IsSafeToPropose() bool {
 	defer ssm.mu.RUnlock()
 
 	bestBlock := ssm.chain.BestBlock()
-	now := uint64(time.Now().Unix())
+	nowNano := uint64(time.Now().UnixNano())
 
 	// check1: node cannot be severely behind (prevent genuine sync issues)
-	timeDiff := now - bestBlock.Timestamp()
-	if bestBlock.Timestamp() > now {
-		timeDiff = bestBlock.Timestamp() - now
+	timeDiff := nowNano - bestBlock.NanoTimestamp()
+	if bestBlock.NanoTimestamp() > nowNano {
+		timeDiff = bestBlock.NanoTimestamp() - nowNano
 	}
 
 	// if time difference is too large, do not allow proposals

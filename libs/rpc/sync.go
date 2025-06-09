@@ -26,12 +26,12 @@ func (s *RPCServer) Sync(handler HandleBlockStream) {
 		lastSyncTime := time.Now()
 
 		shouldSynced := func() bool {
-			bestBlockTime := s.chain.BestBlock().Timestamp()
-			now := uint64(time.Now().Unix())
+			bestBlockTime := s.chain.BestBlock().NanoTimestamp()
+			nowNano := uint64(time.Now().UnixNano())
 
-			timeDiff := now - bestBlockTime
-			if bestBlockTime > now {
-				timeDiff = bestBlockTime - now
+			timeDiff := nowNano - bestBlockTime
+			if bestBlockTime > nowNano {
+				timeDiff = bestBlockTime - nowNano
 			}
 
 			isSynced := timeDiff < types.BlockInterval*3 && s.chain.BestQC().BlockID == s.chain.BestBlock().ID()

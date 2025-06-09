@@ -9,17 +9,13 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/antexprotocol/supernova/chain"
-	"github.com/antexprotocol/supernova/libs/lvldb"
-	db "github.com/cometbft/cometbft-db"
+	cmtdb "github.com/cometbft/cometbft-db"
 	cmtcfg "github.com/cometbft/cometbft/config"
-	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"github.com/lmittmann/tint"
-	cli "gopkg.in/urfave/cli.v1"
 )
 
 func extractModuleLogLevel(configStr, moduleName string) string {
@@ -79,40 +75,7 @@ func InitLogger(config *cmtcfg.Config) {
 	))
 }
 
-func OpenMainDB(ctx *cli.Context, dataDir string) *lvldb.LevelDB {
-	if _, err := fdlimit.Raise(5120 * 4); err != nil {
-		fatal("failed to increase fd limit", err)
-	}
-	limit, err := fdlimit.Current()
-	if err != nil {
-		fatal("failed to get fd limit:", err)
-	}
-	if limit <= 1024 {
-		slog.Warn("low fd limit, increase it if possible", "limit", limit)
-	} else {
-		slog.Info("fd limit", "limit", limit)
-	}
-
-	fileCache := limit / 2
-	if fileCache > 1024 {
-		fileCache = 1024
-	}
-	if fileCache > 4096 {
-		fileCache = 4096
-	}
-
-	dir := filepath.Join(dataDir, "main.db")
-	db, err := lvldb.New(dir, lvldb.Options{
-		CacheSize:              128,
-		OpenFilesCacheCapacity: fileCache,
-	})
-	if err != nil {
-		fatal(fmt.Sprintf("open chain database [%v]: %v", dir, err))
-	}
-	return db
-}
-
-func NewChain(mainDB db.DB) *chain.Chain {
+func NewChain(mainDB cmtdb.DB) *chain.Chain {
 
 	chain, err := chain.New(mainDB, true)
 	if err != nil {

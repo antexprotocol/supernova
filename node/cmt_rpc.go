@@ -162,7 +162,7 @@ func (n *Node) RpcStatus(*rpctypes.Context) (*ctypes.ResultStatus, error) {
 		earliestBlockHeight = int64(genesisBlock.Number())
 		earliestAppHash = genesisBlock.AppHash()
 		earliestBlockHash = genesisBlockId[:]
-		earliestBlockTimeNano = int64(genesisBlock.Timestamp())
+		earliestBlockTimeNano = int64(genesisBlock.NanoTimestamp())
 	}
 
 	var (
@@ -176,7 +176,7 @@ func (n *Node) RpcStatus(*rpctypes.Context) (*ctypes.ResultStatus, error) {
 	if latestHeight != 0 {
 		latestBlockHash = bestBlockId[:]
 		latestAppHash = bestBlock.Header().AppHash
-		latestBlockTimeNano = int64(bestBlock.Timestamp())
+		latestBlockTimeNano = int64(bestBlock.NanoTimestamp())
 	}
 
 	// Return the very last voting power, not the voting power of this validator
@@ -201,7 +201,7 @@ func (n *Node) RpcStatus(*rpctypes.Context) (*ctypes.ResultStatus, error) {
 			EarliestAppHash:     earliestAppHash,
 			EarliestBlockHeight: earliestBlockHeight,
 			EarliestBlockTime:   time.Unix(0, earliestBlockTimeNano),
-			CatchingUp:          !n.isChainSynced(uint64(time.Now().Unix()), uint64(bestBlock.Timestamp())),
+			CatchingUp:          !n.isChainSynced(uint64(time.Now().UnixNano()), uint64(bestBlock.NanoTimestamp())),
 		},
 		ValidatorInfo: ctypes.ValidatorInfo{
 			Address:     n.nodeKey.PubKey().Address(),

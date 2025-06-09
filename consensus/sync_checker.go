@@ -77,12 +77,12 @@ func (sc *SyncChecker) checkAndSync() {
 
 	bestBlock := sc.chain.BestBlock()
 	bestQC := sc.chain.BestQC()
-	now := uint64(time.Now().Unix())
+	nowNano := uint64(time.Now().UnixNano())
 
 	// check time sync
-	timeDiff := now - bestBlock.Timestamp()
-	if bestBlock.Timestamp() > now {
-		timeDiff = bestBlock.Timestamp() - now
+	timeDiff := nowNano - bestBlock.NanoTimestamp()
+	if bestBlock.NanoTimestamp() > nowNano {
+		timeDiff = bestBlock.NanoTimestamp() - nowNano
 	}
 
 	// check QC consistency

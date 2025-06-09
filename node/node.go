@@ -24,13 +24,16 @@ import (
 	cmtcfg "github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/privval"
-	"github.com/cometbft/cometbft/proxy"
 	rpccore "github.com/cometbft/cometbft/rpc/core"
 	rpcserver "github.com/cometbft/cometbft/rpc/jsonrpc/server"
 	cmttypes "github.com/cometbft/cometbft/types"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/rs/cors"
+	"storj.io/drpc/drpcconn"
+	"storj.io/drpc/drpcmux"
+	"storj.io/drpc/drpcserver"
 
 	"github.com/antexprotocol/supernova/api"
 	"github.com/antexprotocol/supernova/block"
@@ -52,6 +55,12 @@ var (
 	GlobNodeInst           *Node
 	errCantExtendBestBlock = errors.New("can't extend best block")
 	genesisDocHashKey      = []byte("genesisDocHash")
+)
+
+var (
+	errFutureBlock   = errors.New("block in the future")
+	errParentMissing = errors.New("parent block is missing")
+	errKnownBlock    = errors.New("block already in the chain")
 )
 
 func LoadGenesisDoc(
@@ -96,8 +105,8 @@ type Node struct {
 	apiServer *api.APIServer
 
 	// network
-	nodeKey *types.NodeKey // our node privkey
-	reactor *consensus.Reactor
+	nodeKey   *types.NodeKey // our node privkey
+	pacemaker *consensus.Pacemaker
 
 	chain       *chain.Chain
 	txPool      *txpool.TxPool
@@ -173,8 +182,8 @@ func NewNode(
 	slog.Info("parsed bootstrap nodes:", "bootstrapNodes", bootstrapNodes)
 
 	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QGZ6np5N03sJeQPI1ep3L_13ckTJQ5TXcj81mk_UV3oeA-mMtcw7JViYP3cgSBmvxQV74MRTTfUNM5TUqr_D2BiGAZRynhEfh2F0dG5ldHOIAAAAAAAAAACEZXRoMpBLDKxQAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfWYOJc2VjcDI1NmsxoQMkZ9waUAVNMFXOY3B5VlDTqLZHqb4MqKOFXSvh-k4dUohzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-3
-	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QOQzYBuKsestT0uZsQ2L7dDgD6EfE81oLfFflzurOHq7B4pY5r-8kozd9PRpE0Z3I994DxXmRc7mC8v23ABysCmGAZRsaVWnh2F0dG5ldHOIAAAAAAAAAACEZXRoMpBLDKxQAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfEoiJc2VjcDI1NmsxoQLZ9EQkKk4n9OCfErexZJ6m-auSEcBdVngrAgh1UlWMp4hzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-2
-	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QLXP9wqWWwRhi4To_3TJ_8rEMYOwN1fZIPeHg7uH__O-K2jBnFYwRy7oFoLYfUYFyP7XlXn5Ibq3Ltqfuzl-VrqGAZRsacAUh2F0dG5ldHOIAAAAAAAAAACEZXRoMpBLDKxQAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfHXiJc2VjcDI1NmsxoQO4P_0L80DH2OIc3pd9GfjqevVK0tV2Z9NZqZ6_qAxSMYhzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-1
+	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QM98ZZL8E3Bx64wPtz49hJ8paIFH8Rv5QCvPTOLJeBYfSobjpjqMfrLODfwiB5_SoWh9Yo_5dvBZ2NLNilgEI9mGAZXZi7yHh2F0dG5ldHOIAAAAAAAAAACEZXRoMpAWc8IXAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfEoiJc2VjcDI1NmsxoQLQJYjiRjexHE-A2FdO0PHyZUhaFYpHhDef1XVZZC5qaohzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-2
+	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QGaHtB-0kwFShAZ3lfLx0HxM-gUX3pPwS6UQkOh98dZyJopO9xFfRXLJpeg-NVVgEDjIcHOMDo2w2usa1sA2qXaGAZXZi7uFh2F0dG5ldHOIAAAAAAAAAACEZXRoMpAWc8IXAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfHXiJc2VjcDI1NmsxoQPxAUSjJt5Vza3kwhv_XtDmQKCrI2SSjjQFrFkaB_ZskohzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // nova-1
 
 	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QMWkLjGkpPB2iP84pdrBqyB-SjJiodPu0oLYQLVLXhgmPMeqN8Nk24Al9mElveJXJFaZUkjwWHAsz1oJN_A-hYeGAZSlsvkzh2F0dG5ldHOIAAAAAAAAAACEZXRoMpAWc8IXAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfEoiJc2VjcDI1NmsxoQMog1olklG4kSkaiGepYTRoy0OseZus8-cOKqzsOqlkBIhzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // simd nova2
 	// BootstrapNodes = append(BootstrapNodes, "enr:-MK4QGD2XTHBtQ_r17bA3MHvUqrhVfKvKKqIeDN3sD-YVhkSM2j6oiv2fKHTK_5lvCn6OPa-WHZ3m9Ao1C6oz9P6i9KGAZSlsvidh2F0dG5ldHOIAAAAAAAAAACEZXRoMpAWc8IXAQAAAAAiAQAAAAAAgmlkgnY0gmlwhKwfHXiJc2VjcDI1NmsxoQOucvYee5KxdMkhPqF4W8KGJGSuOhqzk59ZJiPyogCn6ohzeW5jbmV0cwCDdGNwgjLIg3VkcIIu4A") // simd nova1
@@ -183,8 +192,19 @@ func NewNode(
 	if err != nil {
 		return nil, err
 	}
+
+	m := drpcmux.New()
+
+	server := drpcserver.New(m)
+
 	p2pSrv := newP2PService(ctx, config, bootstrapNodes, geneBlock.NextValidatorsHash())
-	reactor := consensus.NewConsensusReactor(ctx, config, chain, p2pSrv, txPool, blsMaster, proxyApp)
+	p2pSrv.Host().SetStreamHandler("", func(s network.Stream) {
+		conn := drpcconn.New(s)
+		defer conn.Close()
+
+		server.ServeOne(context.Background(), conn.Transport())
+	})
+	pacemaker := consensus.NewPacemaker(ctx, config.Version, chain, txPool, p2pSrv, blsMaster, proxyApp)
 
 	// p2pSrv.SetStreamHandler(p2p.RPCProtocolPrefix+"/ssz_snappy", func(s network.Stream) {
 	// 	fmt.Println("!!!!!!!!! received: /block/sync")
@@ -213,7 +233,7 @@ func NewNode(
 
 	apiAddr := ":8670"
 	chainId, err := strconv.ParseUint(genDoc.ChainID, 10, 64)
-	apiServer := api.NewAPIServer(apiAddr, chainId, config.BaseConfig.Version, chain, txPool, reactor, pubkey.Bytes(), p2pSrv)
+	apiServer := api.NewAPIServer(apiAddr, chainId, config.BaseConfig.Version, chain, txPool, pacemaker, pubkey.Bytes(), p2pSrv)
 
 	bestBlock := chain.BestBlock()
 
@@ -228,7 +248,7 @@ func NewNode(
 		types.MakeName("Supernova", config.BaseConfig.Version),
 		genDoc.ChainID,
 		geneBlock.ID(),
-		bestBlock.ID(), bestBlock.Number(), time.Unix(int64(bestBlock.Timestamp()), 0),
+		bestBlock.ID(), bestBlock.Number(), time.Unix(0, int64(bestBlock.NanoTimestamp())),
 		types.GetForkConfig(geneBlock.ID()),
 		hex.EncodeToString(pubkey.Bytes()),
 		apiAddr)
@@ -241,7 +261,6 @@ func NewNode(
 		privValidator: privValidator,
 		nodeKey:       nodeKey,
 		apiServer:     apiServer,
-		reactor:       reactor,
 		chain:         chain,
 		txPool:        txPool,
 		p2pSrv:        p2pSrv,
@@ -252,8 +271,8 @@ func NewNode(
 	return node, nil
 }
 
-func createAndStartProxyAppConns(clientCreator cmtproxy.ClientCreator, metrics *cmtproxy.Metrics) (proxy.AppConns, error) {
-	proxyApp := proxy.NewAppConns(clientCreator, metrics)
+func createAndStartProxyAppConns(clientCreator cmtproxy.ClientCreator, metrics *cmtproxy.Metrics) (cmtproxy.AppConns, error) {
+	proxyApp := cmtproxy.NewAppConns(clientCreator, metrics)
 	if err := proxyApp.Start(); err != nil {
 		return nil, fmt.Errorf("error starting proxy app connections: %v", err)
 	}
@@ -330,7 +349,7 @@ func doHandshake(
 	c *chain.Chain,
 	genDoc *cmttypes.GenesisDoc,
 	eventBus cmttypes.BlockEventPublisher,
-	proxyApp proxy.AppConns,
+	proxyApp cmtproxy.AppConns,
 	logger log.Logger,
 ) error {
 	handshaker := consensus.NewHandshaker(c, genDoc)
@@ -374,7 +393,7 @@ func (n *Node) Start() error {
 	n.goes.Go(func() { n.apiServer.Start(n.ctx) })
 	n.goes.Go(func() { n.houseKeeping(n.ctx) })
 	// n.goes.Go(func() { n.txStashLoop(n.ctx) })
-	n.goes.Go(func() { n.reactor.Start(n.ctx) })
+	n.goes.Go(func() { n.pacemaker.Start() })
 
 	n.goes.Wait()
 	return nil
@@ -568,8 +587,14 @@ func (n *Node) houseKeeping(ctx context.Context) {
 // 	}
 // }
 
+type syncError string
+
+func (err syncError) Error() string {
+	return string(err)
+}
+
 func (n *Node) processBlock(blk *block.Block, escortQC *block.QuorumCert, stats *blockStats) error {
-	now := uint64(time.Now().Unix())
+	nowNano := uint64(time.Now().UnixNano())
 
 	best := n.chain.BestBlock()
 
@@ -587,15 +612,14 @@ func (n *Node) processBlock(blk *block.Block, escortQC *block.QuorumCert, stats 
 		}
 		return errCantExtendBestBlock
 	}
-
-	if blk.Timestamp()+types.BlockInterval > now {
-		QCValid := n.reactor.Pacemaker.ValidateQC(blk, escortQC)
+	if blk.NanoTimestamp()+types.BlockInterval > nowNano {
+		QCValid := n.pacemaker.ValidateQC(blk, escortQC)
 		if !QCValid {
 			return errors.New(fmt.Sprintf("invalid %s on Block %s", escortQC.String(), blk.ID().ToBlockShortID()))
 		}
 	}
 	start := time.Now()
-	err := n.reactor.ValidateSyncedBlock(blk, now)
+	err := n.ValidateSyncedBlock(blk, nowNano)
 	if time.Since(start) > time.Millisecond*500 {
 		n.logger.Debug("slow processed block", "blk", blk.Number(), "elapsed", types.PrettyDuration(time.Since(start)))
 	}
@@ -615,7 +639,7 @@ func (n *Node) processBlock(blk *block.Block, escortQC *block.QuorumCert, stats 
 		return err
 	}
 	start = time.Now()
-	err = n.reactor.Pacemaker.CommitBlock(blk, escortQC)
+	err = n.pacemaker.CommitBlock(blk, escortQC)
 	if err != nil {
 		if !n.chain.IsBlockExist(err) {
 			n.logger.Error("failed to commit block", "err", err)
@@ -875,4 +899,70 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 
 func (n *Node) GetTxPool() *txpool.TxPool {
 	return n.txPool
+}
+
+// Process process a block.
+func (n *Node) ValidateSyncedBlock(blk *block.Block, nowNanoTimestamp uint64) error {
+	header := blk.Header()
+
+	if _, err := n.chain.GetBlockHeader(header.ID()); err != nil {
+		if !n.chain.IsNotFound(err) {
+			return err
+		}
+	} else {
+		// we may already have this blockID. If it is after the best, still accept it
+		if header.Number() <= n.chain.BestBlock().Number() {
+			return errKnownBlock
+		} else {
+			n.logger.Debug("continue to process blk ...", "height", header.Number())
+		}
+	}
+
+	parent, err := n.chain.GetBlock(header.ParentID)
+	if err != nil {
+		if !n.chain.IsNotFound(err) {
+			return err
+		}
+		return errParentMissing
+	}
+
+	return n.validateBlock(blk, parent, nowNanoTimestamp, true)
+}
+
+func (n *Node) validateBlock(
+	block *block.Block,
+	parent *block.Block,
+	nowNanoTimestamp uint64,
+	forceValidate bool,
+) error {
+	header := block.Header()
+
+	start := time.Now()
+	if parent == nil {
+		return syncError("parent is nil")
+	}
+
+	if parent.ID() != block.QC.BlockID {
+		return syncError(fmt.Sprintf("parent.ID %v and QC.BlockID %v mismatch", parent.ID(), block.QC.BlockID))
+	}
+
+	if header.NanoTimestamp <= parent.NanoTimestamp() {
+		return syncError(fmt.Sprintf("block nano timestamp behind parents: parent %v, current %v", parent.NanoTimestamp, header.NanoTimestamp))
+	}
+
+	if header.NanoTimestamp > nowNanoTimestamp+types.BlockInterval {
+		return errFutureBlock
+	}
+
+	if header.LastKBlock < parent.LastKBlock() {
+		return syncError(fmt.Sprintf("block LastKBlock invalid: parent %v, current %v", parent.LastKBlock, header.LastKBlock))
+	}
+
+	proposedTxs := block.Transactions()
+	if !bytes.Equal(header.TxsRoot, proposedTxs.RootHash()) {
+		return syncError(fmt.Sprintf("block txs root mismatch: want %v, have %v", header.TxsRoot, proposedTxs.RootHash()))
+	}
+
+	n.logger.Debug("validated block", "id", block.CompactString(), "elapsed", types.PrettyDuration(time.Since(start)))
+	return nil
 }
