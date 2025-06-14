@@ -11,7 +11,7 @@ MAJOR = $(shell go version | cut -d' ' -f3 | cut -b 3- | cut -d. -f1)
 MINOR = $(shell go version | cut -d' ' -f3 | cut -b 3- | cut -d. -f2)
 export GO111MODULE=on
 
-.PHONY: supernova disco mdb all clean test
+.PHONY: supernova disco mdb all clean test build
 
 supernova:| go_version_check
 	@echo "building $@..."

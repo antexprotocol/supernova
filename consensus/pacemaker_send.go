@@ -86,9 +86,20 @@ func (p *Pacemaker) BuildTimeoutMessage(qcHigh *block.DraftQC, ti *PMRoundTimeou
 	wishVoteHash := BuildTimeoutVotingHash(ti.epoch, ti.round)
 	wishVoteSig := p.blsMaster.SignMessage(wishVoteHash[:])
 
-	rawQC, err := rlp.EncodeToBytes(qcHigh.QC)
-	if err != nil {
-		return nil, err
+	var rawQC []byte
+	var err error
+	if qcHigh != nil && qcHigh.QC != nil {
+		rawQC, err = rlp.EncodeToBytes(qcHigh.QC)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Use the best QC from chain if qcHigh is nil
+		bestQC := p.chain.BestQC()
+		rawQC, err = rlp.EncodeToBytes(bestQC)
+		if err != nil {
+			return nil, err
+		}
 	}
 	msg := &block.PMTimeoutMessage{
 		NanoTimestamp: uint64(time.Now().UnixNano()),

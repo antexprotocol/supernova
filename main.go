@@ -87,6 +87,7 @@ func main() {
 	if err != nil {
 		slog.Error("failed to parse log level: %v", err)
 	}
+	slog.Info("Creating node", "config", config)
 	ctx, cancelFn := context.WithCancel(context.TODO())
 	// config.LogLevel = "debug" // default is info
 	node, err := node.NewNode(
@@ -104,6 +105,7 @@ func main() {
 	if err != nil {
 		slog.Error("Creating node: %v", err)
 	}
+	slog.Info("Created node")
 
 	node.Start()
 	defer func() {

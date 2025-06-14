@@ -261,6 +261,7 @@ func NewNode(
 		privValidator: privValidator,
 		nodeKey:       nodeKey,
 		apiServer:     apiServer,
+		pacemaker:     pacemaker,
 		chain:         chain,
 		txPool:        txPool,
 		p2pSrv:        p2pSrv,

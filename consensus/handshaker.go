@@ -142,11 +142,12 @@ func (h *Handshaker) ReplayBlocks(
 				return nil, fmt.Errorf("unsupported public key type %s (validator name: %s)", val.PubKey.Type(), val.Name)
 			}
 			validators[i] = cmttypes.NewValidator(val.PubKey, val.Power)
+			h.logger.Info("InitChain req validators", "index", i, "type", val.PubKey.Type(), "pubkey", hex.EncodeToString(val.PubKey.Bytes()))
 		}
 		validatorSet := cmttypes.NewValidatorSet(validators)
 		nextVals := cmttypes.TM2PB.ValidatorUpdates(validatorSet)
 
-		h.logger.Info("InitChain req validators", validatorSet.String(),
+		h.logger.Info("InitChain req validators", "validatorSet", validatorSet.String(),
 			"initChain req nextVals", nextVals)
 		// fmt.Println("InitChain req validators", validatorSet.String(),
 		// 	"initChain req nextVals", nextVals)
@@ -161,10 +162,10 @@ func (h *Handshaker) ReplayBlocks(
 			AppStateBytes:   h.genDoc.AppState,
 		}
 		// fmt.Println("Consensus Params: ", pbparams)
-		h.logger.Info("Consensus Params: ", pbparams)
+		// h.logger.Info("Consensus Params: ", pbparams)
 
 		// fmt.Println("Consensus Params: ", pbparams.Version, pbparams.Block.MaxBytes, pbparams.Block.MaxBytes, pbparams.Evidence.MaxAgeDuration)
-		h.logger.Info("Consensus Params: ", pbparams.Version, pbparams.Block.MaxBytes, pbparams.Block.MaxBytes, pbparams.Evidence.MaxAgeDuration)
+		// h.logger.Info("Consensus Params: ", pbparams.Version, pbparams.Block.MaxBytes, pbparams.Block.MaxBytes, pbparams.Evidence.MaxAgeDuration)
 		res, err := proxyApp.Consensus().InitChain(context.TODO(), req)
 		if err != nil {
 			h.logger.Error("InitChain failed: ", "err", err)
@@ -174,7 +175,7 @@ func (h *Handshaker) ReplayBlocks(
 
 		appHash = res.AppHash
 		// fmt.Println("InitChain Response Validators: ", len(res.Validators))
-		h.logger.Info("InitChain Response Validators: ", len(res.Validators))
+		h.logger.Info("InitChain Response Validators: ", "count", len(res.Validators))
 
 		// h.logger.Info("InitChain genesis validator", h.genDoc.Validators,
 		// 	"initChain response validators", res.Validators)

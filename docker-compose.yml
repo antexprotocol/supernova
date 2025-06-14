@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  node1:
+    build: .
+    image: supernova-node:dev
+    container_name: supernova-node1
+    ports:
+      - "26656-26657:26656-26657"
+      - "1317:1317"
+      - "9090:9090"
+      - "2345:2345"
+      - "8670:8670"
+    volumes:
+      - ./testnet/node1:/home/supernova/.supernova
+    environment:
+      - NODE_ID=1
+      - MONIKER=node1
+    networks:
+      supernova-network:
+        ipv4_address: 192.168.10.2
+    command: ["start", "--cmt-home", "/home/supernova/.supernova"]
+
+  node2:
+    image: supernova-node:dev
+    container_name: supernova-node2
+    ports:
+      - "26666-26667:26656-26657"
+      - "1318:1317"
+      - "9091:9090"
+      - "2346:2345"
+      - "8671:8670"
+    volumes:
+      - ./testnet/node2:/home/supernova/.supernova
+    environment:
+      - NODE_ID=2
+      - MONIKER=node2
+    networks:
+      supernova-network:
+        ipv4_address: 192.168.10.3
+    command: ["start", "--cmt-home", "/home/supernova/.supernova"]
+    depends_on:
+      - node1
+
+  node3:
+    image: supernova-node:dev
+    container_name: supernova-node3
+    ports:
+      - "26676-26677:26656-26657"
+      - "1319:1317"
+      - "9092:9090"
+      - "2347:2345"
+      - "8672:8670"
+    volumes:
+      - ./testnet/node3:/home/supernova/.supernova
+    environment:
+      - NODE_ID=3
+      - MONIKER=node3
+    networks:
+      supernova-network:
+        ipv4_address: 192.168.10.4
+    command: ["start", "--cmt-home", "/home/supernova/.supernova"]
+    depends_on:
+      - node2
+
+networks:
+  supernova-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.10.0/25

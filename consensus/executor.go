@@ -235,6 +235,8 @@ func calcNewValidatorSet(vset *cmttypes.ValidatorSet, updates abcitypes.Validato
 	}
 	nxtVSetAdapter := cmn.NewValidatorSetAdapter(vset)
 
+	fmt.Printf("DEBUG: Processing %d validator updates\n", len(updates))
+
 	veMap := make(map[string]validatorExtra)
 	for _, ev := range events {
 		if ev.Type == "ValidatorExtra" {
@@ -259,7 +261,11 @@ func calcNewValidatorSet(vset *cmttypes.ValidatorSet, updates abcitypes.Validato
 	for _, update := range updates {
 		pubkey, err := bls12381.NewPublicKeyFromBytes(update.PubKeyBytes)
 		if err != nil {
-			panic(err)
+			// panic(err)
+			// Log the error instead of panicking to prevent node crash
+			// This could happen if validator update contains invalid pubkey data
+			fmt.Printf("ERROR: Invalid BLS pubkey in validator update: %v, pubkey bytes: %x\n", err, update.PubKeyBytes)
+			continue // Skip this invalid update
 		}
 		if update.Power == 0 {
 			nxtVSetAdapter.DeleteByPubkey(update.PubKeyBytes)

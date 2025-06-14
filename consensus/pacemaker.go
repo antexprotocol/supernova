@@ -131,6 +131,10 @@ func NewPacemaker(ctx context.Context, version string, c *chain.Chain, txpool *t
 		lastOnBeatRound:      -1,
 		validatorSetRegistry: NewValidatorSetRegistry(c),
 		syncStatusManager:    NewSyncStatusManager(c),
+
+		// Initialize timeout intervals with sensible defaults
+		RoundTimeoutInterval: 3 * time.Second,
+		RoundInterval:        1 * time.Second,
 	}
 	p.executor.SetTxPool(txpool)
 	p.logger.Info("Pacemaker initialized", "version", version, "roundTimeoutInterval", p.RoundTimeoutInterval, "roundInterval", p.RoundInterval)
@@ -382,10 +386,14 @@ func (p *Pacemaker) OnReceiveProposal(mi IncomingMsg) {
 	if bnew.Height >= p.lastVotingHeight && p.ExtendedFromLastCommitted(bnew) {
 		// vote check: vote should be more strict, must ensure node is truly synced
 		if p.shouldSkipProposalDueToSyncLag() {
+			var bestQCNum uint32 = 0
+			if p.QCHigh != nil && p.QCHigh.QC != nil {
+				bestQCNum = p.QCHigh.QC.Number()
+			}
 			p.logger.Warn("skip voting - genuinely behind, need sync",
 				"bnew.height", bnew.Height,
 				"bestBlock", p.chain.BestBlock().Number(),
-				"bestQC", p.QCHigh.QC.Number())
+				"bestQC", bestQCNum)
 			return
 		}
 
@@ -481,10 +489,26 @@ func (p *Pacemaker) OnPropose(qc *block.DraftQC, round uint32) *block.DraftBlock
 func (p *Pacemaker) UpdateQCHigh(qc *block.DraftQC) bool {
 	updated := false
 	oqc := p.QCHigh
+
+	// Validate input QC
+	if qc == nil || qc.QC == nil {
+		p.logger.Warn("UpdateQCHigh called with nil QC")
+		return false
+	}
+
+	// Handle case where p.QCHigh is nil (initial state)
+	if p.QCHigh == nil || p.QCHigh.QC == nil {
+		p.QCHigh = qc
+		updated = true
+		p.logger.Info(fmt.Sprintf("QCHigh initialized to %s", p.QCHigh.ToString()))
+		return updated
+	}
+
 	// update local qcHigh if
 	// newQC.height > qcHigh.height
 	// or newQC.height = qcHigh.height && newQC.round > qcHigh.round
-	if qc.QCNode != nil && qc.QC.Number() > p.QCHigh.QC.Number() || (qc.QC.Number() == p.QCHigh.QCNode.Height && qc.QC.Round > p.QCHigh.QCNode.Round) {
+	if qc.QCNode != nil && qc.QC.Number() > p.QCHigh.QC.Number() ||
+		(qc.QC.Number() == p.QCHigh.QC.Number() && p.QCHigh.QCNode != nil && qc.QC.Round > p.QCHigh.QC.Round) {
 		p.QCHigh = qc
 		updated = true
 		p.logger.Info(fmt.Sprintf("QCHigh update to %s", p.QCHigh.ToString()), "from", oqc.ToString())
@@ -583,7 +607,13 @@ func (p *Pacemaker) OnReceiveTimeout(mi IncomingMsg) {
 
 func (p *Pacemaker) OnReceiveQuery(mi IncomingMsg) {
 	msg := mi.Msg.(*block.PMQueryMessage)
-	proposals := p.chain.GetDraftsUpTo(msg.LastCommitted, p.QCHigh.QC)
+	var qc *block.QuorumCert
+	if p.QCHigh != nil && p.QCHigh.QC != nil {
+		qc = p.QCHigh.QC
+	} else {
+		qc = p.chain.BestQC()
+	}
+	proposals := p.chain.GetDraftsUpTo(msg.LastCommitted, qc)
 	p.logger.Info(`received query`, "lastCommitted", msg.LastCommitted.ToBlockShortID(), "from", mi.SenderAddr)
 	for _, proposal := range proposals {
 		p.logger.Info(`forward proposal`, "id", proposal.ProposedBlock.ID().ToBlockShortID(), "to", mi.SenderAddr)
@@ -675,7 +705,7 @@ func (p *Pacemaker) mainLoop() {
 
 	for {
 		bestBlock := p.chain.BestBlock()
-		if bestBlock.Number() > p.QCHigh.QC.Number() && p.epochState.InCommittee() {
+		if p.QCHigh != nil && p.QCHigh.QC != nil && bestBlock.Number() > p.QCHigh.QC.Number() && p.epochState.InCommittee() {
 			p.logger.Info("bestBlock > QCHigh, schedule regulate", "best", bestBlock.Number(), "qcHigh", p.QCHigh.QC.Number())
 			p.scheduleRegulate()
 		}

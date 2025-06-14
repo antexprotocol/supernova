@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"log"
@@ -60,7 +61,41 @@ func (app *KVStoreApplication) CheckTx(_ context.Context, check *abcitypes.Check
 }
 
 func (app *KVStoreApplication) InitChain(_ context.Context, chain *abcitypes.InitChainRequest) (*abcitypes.InitChainResponse, error) {
-	return &abcitypes.InitChainResponse{}, nil
+	// Set up initial validators for consensus to start - from genesis.json
+
+	// node1
+	node1PubkeyB64 := "Fa0KgI169Y/On4vLtcaOS0/vgeV2paOnwAYNSNXbqtHFu6Hsx18DlkahShFgsqumF9KN5EJXUCGYghr23TfPwx57bU5VC1QgkO+5oGuIVxbivKiI3mGu31WPB5arNWF6"
+	node1Pubkey, _ := base64.StdEncoding.DecodeString(node1PubkeyB64)
+
+	// node2
+	node2PubkeyB64 := "B9V7/gILorTHdgPBq8wfqczKx48CBGEWb2Jl+QUquaHWsEaOS6q0ejWW4B7Wo0GDAHhJ7qkT/Q/4pg4P3P/rEuVzn6837HqZjKb19nObhF5dDSyYc5leeUGUhJaEzC95"
+	node2Pubkey, _ := base64.StdEncoding.DecodeString(node2PubkeyB64)
+
+	// node3
+	node3PubkeyB64 := "Ck8GgSvWLdu9AZn00wF6hAYrsngoqz0Svtd1G3acjo5Jacd025a7lFqzXyDtOYbMDwgcui8DtV1nrDKvV0clbIrg9+zWozaqO/k+8qYqKfMcQ+H4HyFWClYDeK2XG2Mr"
+	node3Pubkey, _ := base64.StdEncoding.DecodeString(node3PubkeyB64)
+
+	initialValidators := []abcitypes.ValidatorUpdate{
+		{
+			Power:       100,
+			PubKeyBytes: node1Pubkey,
+			PubKeyType:  "bls12-381.pubkey",
+		},
+		{
+			Power:       100,
+			PubKeyBytes: node2Pubkey,
+			PubKeyType:  "bls12-381.pubkey",
+		},
+		{
+			Power:       100,
+			PubKeyBytes: node3Pubkey,
+			PubKeyType:  "bls12-381.pubkey",
+		},
+	}
+
+	return &abcitypes.InitChainResponse{
+		Validators: initialValidators,
+	}, nil
 }
 
 func (app *KVStoreApplication) PrepareProposal(_ context.Context, proposal *abcitypes.PrepareProposalRequest) (*abcitypes.PrepareProposalResponse, error) {
