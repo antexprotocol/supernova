@@ -60,10 +60,18 @@ func (s *RPCServer) GetStatus(pid peer.ID) (*Status, error) {
 func (s *RPCServer) decode(stream network.Stream, decoded interface{}) error {
 	bs, err := io.ReadAll(stream)
 	if err != nil {
+		s.logger.Error("decode read all error", "err", err)
 		return err
 	}
-	err = rlp.DecodeBytes(bs, decoded)
+	env := &message.RPCEnvelope{}
+	err = env.UnmarshalSSZ(bs)
 	if err != nil {
+		s.logger.Error("unmarshalSSZ env error", "err", err, "lenBs", len(bs), "bs", bs)
+		return err
+	}
+	err = rlp.DecodeBytes(env.Raw, decoded)
+	if err != nil {
+		s.logger.Error("decode raw error", "err", err, "lenRaw", len(env.Raw), "raw", env.Raw)
 		return err
 	}
 	return nil
@@ -128,8 +136,9 @@ func (s *RPCServer) GetBlocksFromNumber(pid peer.ID, num uint32) ([]*block.Escor
 		return nil, err
 	}
 	escortedBlocks := make([]*block.EscortedBlock, 0)
-	err = s.decode(stream, escortedBlocks)
+	err = s.decode(stream, &escortedBlocks)
 	if err != nil {
+		s.logger.Error("GetBlocksFromNumber decode error", "num", num, "peer", pid, "err", err)
 		return nil, err
 	}
 
@@ -146,7 +155,7 @@ func (s *RPCServer) GetTxs(pid peer.ID) (types.Transactions, error) {
 		return nil, err
 	}
 	var txs types.Transactions
-	err = s.decode(stream, txs)
+	err = s.decode(stream, &txs)
 	if err != nil {
 		return nil, err
 	}

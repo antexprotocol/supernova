@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/antexprotocol/supernova/block"
@@ -14,7 +15,6 @@ import (
 
 const initSyncInterval = 500 * time.Millisecond
 const syncInterval = 6 * time.Second
-const activeSyncInterval = 30 * time.Second
 
 // Sync start synchronization process.
 func (s *RPCServer) Sync(handler HandleBlockStream) {
@@ -23,31 +23,17 @@ func (s *RPCServer) Sync(handler HandleBlockStream) {
 		defer timer.Stop()
 		delay := initSyncInterval
 		syncCount := 0
-		lastSyncTime := time.Now()
 
 		shouldSynced := func() bool {
 			bestBlockTime := s.chain.BestBlock().NanoTimestamp()
 			nowNano := uint64(time.Now().UnixNano())
-
-			timeDiff := nowNano - bestBlockTime
-			if bestBlockTime > nowNano {
-				timeDiff = bestBlockTime - nowNano
-			}
-
-			isSynced := timeDiff < types.BlockInterval*3 && s.chain.BestQC().BlockID == s.chain.BestBlock().ID()
-
-			peers := s.p2pSrv.Peers().All()
-			if len(peers) == 0 {
-				s.logger.Debug("no peers available, assuming synced")
+			if bestBlockTime+types.BlockInterval >= nowNano && s.chain.BestQC().BlockID == s.chain.BestBlock().ID() {
 				return true
 			}
-
-			if isSynced && time.Since(lastSyncTime) > activeSyncInterval {
-				s.logger.Debug("periodic sync check needed")
-				return false
+			if syncCount > 2 {
+				return true
 			}
-
-			return isSynced
+			return false
 		}
 
 		for {
@@ -69,21 +55,13 @@ func (s *RPCServer) Sync(handler HandleBlockStream) {
 					s.logger.Debug("no suitable peer to sync")
 					break
 				} else {
-					synced := false
-					for _, peerID := range peers {
-						if err := s.download(peerID, handler); err != nil {
-							s.logger.Debug("synchronization failed", "peer", peerID, "err", err)
-							continue
-						}
-						s.logger.Debug("synchronization done", "peer", peerID)
-						synced = true
-						lastSyncTime = time.Now()
+					// TODO: find peer with best known number
+					peer := peers[rand.Intn(len(peers))]
+					if err := s.download(peer, handler); err != nil {
+						s.logger.Debug("synchronization failed", "err", err)
 						break
 					}
-
-					if !synced {
-						s.logger.Warn("failed to sync from any peer")
-					}
+					s.logger.Debug("synchronization done")
 				}
 				syncCount++
 
@@ -93,10 +71,6 @@ func (s *RPCServer) Sync(handler HandleBlockStream) {
 						// s.Synced = true
 						close(s.syncedCh)
 					})
-				} else {
-					if delay > initSyncInterval*4 {
-						delay = initSyncInterval * 2
-					}
 				}
 			}
 		}

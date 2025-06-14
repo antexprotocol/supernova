@@ -83,11 +83,13 @@ func (s *RPCServer) Reply(stream network.Stream, msgType uint32, content interfa
 	if err != nil {
 		return err
 	}
+	// s.logger.Debug("reply", "msgType", msgType, "lenRawEncoded", len(raw), "raw", raw)
 	env := &message.RPCEnvelope{MsgType: msgType, Raw: raw, IsResponse: isResponse}
 	pkt, err := env.MarshalSSZ()
 	if err != nil {
 		return err
 	}
+	// s.logger.Debug("reply", "msgType", msgType, "lenPkt", len(pkt), "pkt", pkt)
 	_, err = stream.Write(pkt)
 	return err
 }
@@ -206,6 +208,7 @@ func (s *RPCServer) handleRPC(stream network.Stream) {
 			break
 		}
 
+		// s.logger.Debug("get block from num", "num", num)
 		const maxBlocks = 1024
 		const maxSize = 512 * 1024
 		result := make([]*block.EscortedBlock, 0)
@@ -214,6 +217,7 @@ func (s *RPCServer) handleRPC(stream network.Stream) {
 			if num > s.chain.BestBlock().Number() {
 				break
 			}
+			// s.logger.Debug("get block by number", "num", num)
 			blk, err := s.chain.GetTrunkBlock(num)
 			if err != nil {
 				if !s.chain.IsNotFound(err) {
@@ -235,10 +239,13 @@ func (s *RPCServer) handleRPC(stream network.Stream) {
 			}
 			result = append(result, &block.EscortedBlock{Block: blk, EscortQC: escortQC})
 			num++
+			// s.logger.Debug("append block", "num", num)
 
 			// FIXME: use actual QC size
 			size += common.StorageSize(blk.Size() + 10000)
 		}
+
+		// s.logger.Debug("reply", "msgType", GET_BLOCKS_FROM_NUM, "lenResult", len(result))
 		err = s.Reply(stream, GET_BLOCKS_FROM_NUM, result, true)
 	case GET_TXS:
 		// FIXME: impl this

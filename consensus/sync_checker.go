@@ -44,7 +44,8 @@ func NewSyncChecker(ctx context.Context, chain *chain.Chain, p2pSrv p2p.P2P, rpc
 
 // Start start sync checker
 func (sc *SyncChecker) Start() {
-	go sc.run()
+	// Comment out for now to avoid sync check
+	// go sc.run()
 }
 
 // run main loop

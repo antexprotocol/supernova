@@ -378,8 +378,8 @@ func (n *Node) Start() error {
 	n.rpc.Sync(n.handleBlockStream)
 
 	// start sync checker
-	n.syncChecker = consensus.NewSyncChecker(n.ctx, n.chain, n.p2pSrv, n.rpc)
-	n.syncChecker.Start()
+	// n.syncChecker = consensus.NewSyncChecker(n.ctx, n.chain, n.p2pSrv, n.rpc)
+	// n.syncChecker.Start()
 
 	// Start the cometbft RPC server before the P2P server
 	if n.config.RPC.ListenAddress != "" {
@@ -600,17 +600,9 @@ func (n *Node) processBlock(blk *block.Block, escortQC *block.QuorumCert, stats 
 	best := n.chain.BestBlock()
 
 	// check if block can be directly connected to current best block
-	if !bytes.Equal(best.ID().Bytes(), blk.ParentID().Bytes()) {
-		// if not directly connected, check if we are behind
-		if blk.Number() > best.Number()+1 {
-			n.logger.Warn("received block from future",
-				"blockNum", blk.Number(),
-				"bestNum", best.Number(),
-				"gap", blk.Number()-best.Number()-1)
-
-			// try to get missing blocks from other nodes
-			go n.syncMissingBlocks(best.Number()+1, blk.Number()-1)
-		}
+	// if !bytes.Equal(best.ID().Bytes(), blk.ParentID().Bytes()) {
+	if best.Number() != block.Number(blk.ParentID()) {
+		n.logger.Error("block parent id mismatch", "bestNum", best.Number(), "blkNum", blk.Number())
 		return errCantExtendBestBlock
 	}
 	if blk.NanoTimestamp()+types.BlockInterval > nowNano {
@@ -652,42 +644,6 @@ func (n *Node) processBlock(blk *block.Block, escortQC *block.QuorumCert, stats 
 	// n.processFork(fork)
 
 	return nil
-}
-
-// syncMissingBlocks try to sync missing blocks
-func (n *Node) syncMissingBlocks(fromNum, toNum uint32) {
-	n.logger.Info("attempting to sync missing blocks", "from", fromNum, "to", toNum)
-
-	peers := n.p2pSrv.Peers().All()
-	if len(peers) == 0 {
-		n.logger.Warn("no peers available for syncing missing blocks")
-		return
-	}
-
-	// try to get missing blocks from each peer
-	for _, peerID := range peers {
-		success := true
-		for num := fromNum; num <= toNum; num++ {
-			blk, err := n.rpc.GetBlocksFromNumber(peerID, num)
-			if err != nil || len(blk) == 0 {
-				n.logger.Debug("failed to get block from peer", "num", num, "peer", peerID, "err", err)
-				success = false
-				break
-			}
-
-			// process the retrieved blocks
-			if err := n.processBlock(blk[0].Block, blk[0].EscortQC, &blockStats{}); err != nil {
-				n.logger.Debug("failed to process synced block", "num", num, "err", err)
-				success = false
-				break
-			}
-		}
-
-		if success {
-			n.logger.Info("successfully synced missing blocks", "from", fromNum, "to", toNum, "peer", peerID)
-			break
-		}
-	}
 }
 
 // func (n *Node) processFork(fork *chain.Fork) {
@@ -919,6 +875,7 @@ func (n *Node) ValidateSyncedBlock(blk *block.Block, nowNanoTimestamp uint64) er
 		}
 	}
 
+	// TODO: use GetTrunkBlock instead of GetBlock
 	parent, err := n.chain.GetBlock(header.ParentID)
 	if err != nil {
 		if !n.chain.IsNotFound(err) {
